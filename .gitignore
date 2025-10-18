@@ -1,0 +1,22 @@
+# dependencias
+node_modules/
+apps/*/node_modules/
+.expo/
+.expo-shared/
+
+# builds y caches
+dist/
+build/
+tmp/
+coverage/
+
+# entorno
+.env
+.env.*
+apps/mobile/.env
+apps/api/.env
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+.vscode/
