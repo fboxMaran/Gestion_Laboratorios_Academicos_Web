@@ -1,0 +1,63 @@
+body {
+    font-family: sans-serif;
+    margin: 20px; /* Common margins */
+}
+
+header {
+    margin-bottom: 20px;
+    display: flex;             /* Add this to the header */
+    justify-content: space-between; /* Distribute space */
+    align-items: center;      /* Center vertically */
+}
+
+.blue-ribbon {
+    background-color: #4954ee; /* Blue color */
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.collapsible {
+    background-color: #777;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+}
+
+.active, .collapsible:hover {
+    background-color: #555;
+}
+
+.content {
+    padding: 0 18px;
+    display: none;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+
+.cancel-btn, .save-btn {
+    background-color: #e74c3c; /* Red for Cancel */
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.save-btn {
+    background-color: #2ecc71; /* Green for Save */
+}
+
+.cancel-btn:hover, .save-btn:hover {
+    opacity: 0.8;
+}
+
+main {
+  max-width: 800px; /* Optional:  Limit the width of the main content */
+  margin: 0 auto; /* Optional: Center the main content */
+}
