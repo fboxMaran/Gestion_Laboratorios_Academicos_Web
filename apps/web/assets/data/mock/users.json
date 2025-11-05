@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "name": "Juan Pablo Cambronero",
+    "email": "usuario@demo.edu",
+    "password": "demo123",
+    "role": "user",
+    "department": "Ingeniería en Computación",
+    "phone": "+506 8888-9999",
+    "student_id": "2021012345"
+  },
+  {
+    "id": 2,
+    "name": "María González",
+    "email": "maria@demo.edu",
+    "password": "demo456",
+    "role": "user",
+    "department": "Ingeniería Electrónica",
+    "phone": "+506 7777-8888",
+    "student_id": "2020098765"
+  }
+]

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🔬 Gestión de Laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-notifications">
+                    <span class="notification-badge">3</span>
+                    🔔
+                </div>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item active">
+                <a href="./dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Mis Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">
+                    <span class="sidebar-icon">📚</span>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                    <span class="badge badge-error">3</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <h1>Bienvenido de vuelta, <span id="userNameTitle">Usuario</span>! 👋</h1>
+            <p class="text-secondary">Aquí está el resumen de tu actividad</p>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-4 mt-xl">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="stat-icon">📋</div>
+                        <h3 class="stat-number" id="pendingRequests">0</h3>
+                        <p class="text-secondary">Solicitudes Pendientes</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <div class="stat-icon">✅</div>
+                        <h3 class="stat-number" id="approvedRequests">0</h3>
+                        <p class="text-secondary">Solicitudes Aprobadas</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <div class="stat-icon">📚</div>
+                        <h3 class="stat-number" id="totalReservations">0</h3>
+                        <p class="text-secondary">Total Reservas</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <div class="stat-icon">🎓</div>
+                        <h3 class="stat-number" id="trainingsCompleted">0</h3>
+                        <p class="text-secondary">Capacitaciones</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="mt-xl">
+                <h2>Solicitudes Recientes</h2>
+                <div class="card mt-md">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Recurso</th>
+                                        <th>Laboratorio</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentRequestsTable">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Preview -->
+            <div class="mt-xl">
+                <h2>Notificaciones Recientes</h2>
+                <div class="grid grid-cols-1 mt-md" id="notificationsContainer">
+                    <p class="text-secondary">Cargando...</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mt-xl">
+                <h2>Acciones Rápidas</h2>
+                <div class="grid grid-cols-3 mt-md">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem;">🔍</div>
+                            <h3>Buscar Recursos</h3>
+                            <p class="text-secondary">Encuentra equipos y laboratorios disponibles</p>
+                            <a href="./search.html" class="btn btn-primary mt-md">Buscar</a>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem;">📝</div>
+                            <h3>Nueva Solicitud</h3>
+                            <p class="text-secondary">Solicita recursos para tus proyectos</p>
+                            <a href="./requests.html" class="btn btn-primary mt-md">Crear</a>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div style="font-size: 3rem;">📚</div>
+                            <h3>Ver Historial</h3>
+                            <p class="text-secondary">Revisa tus actividades pasadas</p>
+                            <a href="./history.html" class="btn btn-primary mt-md">Ver</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="../assets/js/config.js"></script>
+    <script type="module" src="../assets/js/utils.js"></script>
+    <script type="module" src="../assets/js/auth.js"></script>
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { formatDate, showNotification } from '../assets/js/utils.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+
+        // Verificar autenticación
+        requireAuth();
+
+        // Hacer logout disponible globalmente
+        window.logout = authLogout;
+
+        // Cargar datos del usuario
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userNameTitle').textContent = user.name;
+        }
+
+        // Cargar estadísticas
+        async function loadDashboard() {
+            try {
+                // Cargar solicitudes
+                const requests = await api.getRequests();
+                
+                // Calcular estadísticas
+                const pending = requests.filter(r => r.status === 'pending').length;
+                const approved = requests.filter(r => r.status === 'approved').length;
+                
+                document.getElementById('pendingRequests').textContent = pending;
+                document.getElementById('approvedRequests').textContent = approved;
+                
+                // Cargar historial para estadísticas
+                const history = await api.getHistory();
+                const reservations = history.filter(h => h.type === 'reservation').length;
+                const trainings = history.filter(h => h.type === 'training').length;
+                
+                document.getElementById('totalReservations').textContent = reservations;
+                document.getElementById('trainingsCompleted').textContent = trainings;
+                
+                // Mostrar solicitudes recientes
+                renderRecentRequests(requests.slice(0, 5));
+                
+                // Cargar notificaciones
+                const notifications = await api.getNotifications();
+                renderNotifications(notifications.slice(0, 3));
+                
+            } catch (error) {
+                console.error('Error al cargar dashboard:', error);
+                showNotification('Error al cargar datos del dashboard', 'error');
+            }
+        }
+
+        function renderRecentRequests(requests) {
+            const tbody = document.getElementById('recentRequestsTable');
+            
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tienes solicitudes recientes</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = requests.map(req => `
+                <tr>
+                    <td>${req.resource_name}</td>
+                    <td>${req.lab_name}</td>
+                    <td>${formatDate(req.date_from, 'DD/MM/YYYY')}</td>
+                    <td>
+                        <span class="badge badge-${req.status}">
+                            ${req.status === 'pending' ? 'Pendiente' : 
+                              req.status === 'approved' ? 'Aprobada' : 
+                              req.status === 'rejected' ? 'Rechazada' :
+                              req.status === 'cancelled' ? 'Cancelada' : 
+                              'Completada'}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="./requests.html?id=${req.id}" class="btn btn-sm btn-outline">Ver</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderNotifications(notifications) {
+            const container = document.getElementById('notificationsContainer');
+            
+            if (notifications.length === 0) {
+                container.innerHTML = '<p class="text-secondary">No tienes notificaciones</p>';
+                return;
+            }
+            
+            container.innerHTML = notifications.map(notif => `
+                <div class="alert alert-${notif.type}">
+                    <strong>${notif.title}</strong>
+                    <p>${notif.message}</p>
+                    <small class="text-secondary">${formatDate(notif.created_at, 'DD/MM/YYYY HH:mm')}</small>
+                </div>
+            `).join('');
+        }
+
+        // Cargar dashboard al inicio
+        loadDashboard();
+    </script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: bold;
+            margin: var(--spacing-sm) 0;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+        }
+    </style>
+</body>
+</html>

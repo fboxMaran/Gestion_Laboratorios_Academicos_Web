@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "name": "Juan Pérez",
+  "email": "usuario@demo.edu",
+  "phone": "+506 8888-9999",
+  "department": "Ingeniería en Computación",
+  "student_id": "2021012345",
+  "enrollment_year": 2021,
+  "status": "active",
+  "profile_image": null,
+  "bio": "Estudiante de tercer año interesado en desarrollo de software y robótica.",
+  "trainings_completed": 5,
+  "total_reservations": 23,
+  "created_at": "2021-02-15T00:00:00Z"
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "name": "Osciloscopio Digital 100MHz",
+    "category": "Medición",
+    "lab_id": 1,
+    "lab_name": "Laboratorio de Electrónica",
+    "description": "Osciloscopio de 4 canales para análisis de señales",
+    "quantity_available": 5,
+    "quantity_total": 8,
+    "status": "available",
+    "image": "https://via.placeholder.com/200x150?text=Osciloscopio",
+    "technical_specs": {
+      "brand": "Tektronix",
+      "model": "TBS2104",
+      "bandwidth": "100MHz",
+      "channels": 4
+    }
+  },
+  {
+    "id": 2,
+    "name": "Arduino Mega 2560",
+    "category": "Microcontroladores",
+    "lab_id": 4,
+    "lab_name": "Laboratorio de Robótica",
+    "description": "Placa de desarrollo con microcontrolador ATmega2560",
+    "quantity_available": 12,
+    "quantity_total": 15,
+    "status": "available",
+    "image": "https://via.placeholder.com/200x150?text=Arduino",
+    "technical_specs": {
+      "brand": "Arduino",
+      "model": "Mega 2560",
+      "pins": 54,
+      "memory": "256KB"
+    }
+  },
+  {
+    "id": 3,
+    "name": "Microscopio Óptico Binocular",
+    "category": "Óptica",
+    "lab_id": 3,
+    "lab_name": "Laboratorio de Química",
+    "description": "Microscopio con sistema de iluminación LED",
+    "quantity_available": 0,
+    "quantity_total": 10,
+    "status": "reserved",
+    "image": "https://via.placeholder.com/200x150?text=Microscopio",
+    "technical_specs": {
+      "brand": "Olympus",
+      "model": "CX23",
+      "magnification": "40x-1000x",
+      "type": "Binocular"
+    }
+  },
+  {
+    "id": 4,
+    "name": "Impresora 3D",
+    "category": "Fabricación",
+    "lab_id": 4,
+    "lab_name": "Laboratorio de Robótica",
+    "description": "Impresora 3D FDM para prototipado rápido",
+    "quantity_available": 2,
+    "quantity_total": 3,
+    "status": "available",
+    "image": "https://via.placeholder.com/200x150?text=Impresora+3D",
+    "technical_specs": {
+      "brand": "Prusa",
+      "model": "i3 MK3S+",
+      "build_volume": "250x210x210mm",
+      "layer_height": "0.05-0.35mm"
+    }
+  },
+  {
+    "id": 5,
+    "name": "Multímetro Digital",
+    "category": "Medición",
+    "lab_id": 1,
+    "lab_name": "Laboratorio de Electrónica",
+    "description": "Multímetro de precisión con registro de datos",
+    "quantity_available": 18,
+    "quantity_total": 20,
+    "status": "available",
+    "image": "https://via.placeholder.com/200x150?text=Multímetro",
+    "technical_specs": {
+      "brand": "Fluke",
+      "model": "87V",
+      "accuracy": "±0.05%",
+      "display": "Digital"
+    }
+  }
+]

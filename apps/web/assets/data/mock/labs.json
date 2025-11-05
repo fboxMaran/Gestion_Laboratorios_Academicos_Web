@@ -1,0 +1,94 @@
+[
+  {
+    "id": 1,
+    "name": "Laboratorio de Electrónica",
+    "category": "Electrónica",
+    "description": "Laboratorio equipado con instrumentos de medición y componentes para prácticas de circuitos.",
+    "capacity": 20,
+    "building": "Edificio A",
+    "floor": 2,
+    "room": "A-201",
+    "responsible": "Dr. Carlos Ramírez",
+    "email": "carlos.ramirez@demo.edu",
+    "phone": "+506 2222-3333",
+    "status": "available",
+    "image": "https://via.placeholder.com/400x250?text=Lab+Electrónica",
+    "requirements": ["Capacitación básica", "Reserva previa"],
+    "schedule": {
+      "monday": "08:00-18:00",
+      "tuesday": "08:00-18:00",
+      "wednesday": "08:00-18:00",
+      "thursday": "08:00-18:00",
+      "friday": "08:00-17:00"
+    }
+  },
+  {
+    "id": 2,
+    "name": "Laboratorio de Computación",
+    "category": "Informática",
+    "description": "30 estaciones de trabajo con software de desarrollo y diseño.",
+    "capacity": 30,
+    "building": "Edificio B",
+    "floor": 1,
+    "room": "B-105",
+    "responsible": "Ing. Ana López",
+    "email": "ana.lopez@demo.edu",
+    "phone": "+506 2222-4444",
+    "status": "available",
+    "image": "https://via.placeholder.com/400x250?text=Lab+Computación",
+    "requirements": ["Carnet estudiantil"],
+    "schedule": {
+      "monday": "07:00-20:00",
+      "tuesday": "07:00-20:00",
+      "wednesday": "07:00-20:00",
+      "thursday": "07:00-20:00",
+      "friday": "07:00-19:00"
+    }
+  },
+  {
+    "id": 3,
+    "name": "Laboratorio de Química",
+    "category": "Química",
+    "description": "Instalaciones para prácticas de química general, orgánica e inorgánica.",
+    "capacity": 16,
+    "building": "Edificio C",
+    "floor": 3,
+    "room": "C-304",
+    "responsible": "Dra. Patricia Mora",
+    "email": "patricia.mora@demo.edu",
+    "phone": "+506 2222-5555",
+    "status": "maintenance",
+    "image": "https://via.placeholder.com/400x250?text=Lab+Química",
+    "requirements": ["Capacitación de seguridad", "Equipo de protección", "Reserva con 48h de anticipación"],
+    "schedule": {
+      "monday": "09:00-17:00",
+      "tuesday": "09:00-17:00",
+      "wednesday": "09:00-17:00",
+      "thursday": "09:00-17:00",
+      "friday": "09:00-16:00"
+    }
+  },
+  {
+    "id": 4,
+    "name": "Laboratorio de Robótica",
+    "category": "Mecatrónica",
+    "description": "Espacio para desarrollo y prueba de proyectos de robótica y automatización.",
+    "capacity": 15,
+    "building": "Edificio A",
+    "floor": 3,
+    "room": "A-305",
+    "responsible": "Ing. Roberto Sánchez",
+    "email": "roberto.sanchez@demo.edu",
+    "phone": "+506 2222-6666",
+    "status": "available",
+    "image": "https://via.placeholder.com/400x250?text=Lab+Robótica",
+    "requirements": ["Proyecto aprobado", "Capacitación en equipos"],
+    "schedule": {
+      "monday": "08:00-19:00",
+      "tuesday": "08:00-19:00",
+      "wednesday": "08:00-19:00",
+      "thursday": "08:00-19:00",
+      "friday": "08:00-18:00"
+    }
+  }
+]

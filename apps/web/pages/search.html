@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar Recursos - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🔬 Gestión de Laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-notifications">
+                    <span class="notification-badge">3</span>
+                    🔔
+                </div>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Mis Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">
+                    <span class="sidebar-icon">📚</span>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                    <span class="badge badge-error">3</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <h1>🔍 Buscar Recursos y Laboratorios</h1>
+            <p class="text-secondary">Encuentra equipos y espacios disponibles para tus proyectos</p>
+
+            <!-- Search Filters -->
+            <div class="card mt-xl">
+                <div class="card-body">
+                    <form id="searchForm">
+                        <div class="grid grid-cols-3">
+                            <div class="form-group">
+                                <label for="searchQuery">Buscar por nombre</label>
+                                <input type="text" id="searchQuery" placeholder="Ej: Arduino, Osciloscopio...">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="categoryFilter">Categoría</label>
+                                <select id="categoryFilter">
+                                    <option value="">Todas las categorías</option>
+                                    <option value="Electrónica">Electrónica</option>
+                                    <option value="Informática">Informática</option>
+                                    <option value="Química">Química</option>
+                                    <option value="Mecatrónica">Mecatrónica</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="statusFilter">Estado</label>
+                                <select id="statusFilter">
+                                    <option value="">Todos</option>
+                                    <option value="available">Disponible</option>
+                                    <option value="reserved">Reservado</option>
+                                    <option value="maintenance">En Mantenimiento</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-md">
+                            <button type="submit" class="btn btn-primary">Buscar</button>
+                            <button type="button" class="btn btn-outline" onclick="clearFilters()">Limpiar Filtros</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Tabs -->
+            <div class="mt-xl">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="labs">Laboratorios (4)</button>
+                    <button class="tab-btn" data-tab="resources">Recursos (5)</button>
+                </div>
+
+                <!-- Labs Results -->
+                <div id="labs-content" class="tab-content active">
+                    <div class="grid grid-cols-2 mt-lg" id="labsContainer">
+                        <p class="text-secondary">Cargando laboratorios...</p>
+                    </div>
+                </div>
+
+                <!-- Resources Results -->
+                <div id="resources-content" class="tab-content">
+                    <div class="grid grid-cols-3 mt-lg" id="resourcesContainer">
+                        <p class="text-secondary">Cargando recursos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para detalles -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Detalles</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Cerrar</button>
+                <button class="btn btn-primary" onclick="createRequestFromModal()">Solicitar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { formatDate, showNotification } from '../assets/js/utils.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+
+        requireAuth();
+        window.logout = authLogout;
+
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name;
+        }
+
+        let currentLabs = [];
+        let currentResources = [];
+
+        // Cargar datos iniciales
+        async function loadData() {
+            try {
+                currentLabs = await api.searchLabs();
+                currentResources = await api.searchResources();
+                
+                renderLabs(currentLabs);
+                renderResources(currentResources);
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                showNotification('Error al cargar datos', 'error');
+            }
+        }
+
+        function renderLabs(labs) {
+            const container = document.getElementById('labsContainer');
+            
+            if (labs.length === 0) {
+                container.innerHTML = '<p class="text-secondary">No se encontraron laboratorios</p>';
+                return;
+            }
+            
+            container.innerHTML = labs.map(lab => `
+                <div class="card">
+                    <img src="${lab.image}" alt="${lab.name}" class="card-img">
+                    <div class="card-body">
+                        <h3>${lab.name}</h3>
+                        <p class="text-secondary">${lab.description}</p>
+                        
+                        <div class="mt-md">
+                            <p><strong>📍 Ubicación:</strong> ${lab.building}, ${lab.room}</p>
+                            <p><strong>👥 Capacidad:</strong> ${lab.capacity} personas</p>
+                            <p><strong>👨‍🔬 Responsable:</strong> ${lab.responsible}</p>
+                            <p><strong>Estado:</strong> <span class="badge badge-${lab.status}">${
+                                lab.status === 'available' ? 'Disponible' :
+                                lab.status === 'maintenance' ? 'Mantenimiento' : 'No disponible'
+                            }</span></p>
+                        </div>
+                        
+                        <div class="mt-md">
+                            <button class="btn btn-primary btn-block" onclick="viewLabDetails(${lab.id})">
+                                Ver Detalles
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderResources(resources) {
+            const container = document.getElementById('resourcesContainer');
+            
+            if (resources.length === 0) {
+                container.innerHTML = '<p class="text-secondary">No se encontraron recursos</p>';
+                return;
+            }
+            
+            container.innerHTML = resources.map(resource => `
+                <div class="card">
+                    <img src="${resource.image}" alt="${resource.name}" class="card-img">
+                    <div class="card-body">
+                        <h4>${resource.name}</h4>
+                        <p class="text-secondary">${resource.description}</p>
+                        
+                        <div class="mt-md">
+                            <p><strong>Categoría:</strong> ${resource.category}</p>
+                            <p><strong>Laboratorio:</strong> ${resource.lab_name}</p>
+                            <p><strong>Disponibles:</strong> ${resource.quantity_available} / ${resource.quantity_total}</p>
+                            <p><strong>Estado:</strong> <span class="badge badge-${resource.status}">${
+                                resource.status === 'available' ? 'Disponible' :
+                                resource.status === 'reserved' ? 'Reservado' : 'No disponible'
+                            }</span></p>
+                        </div>
+                        
+                        <div class="mt-md">
+                            <button class="btn btn-primary btn-block" 
+                                    onclick="viewResourceDetails(${resource.id})"
+                                    ${resource.quantity_available === 0 ? 'disabled' : ''}>
+                                ${resource.quantity_available > 0 ? 'Ver Detalles' : 'No Disponible'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Búsqueda y filtros
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const query = document.getElementById('searchQuery').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            // Filtrar labs
+            let filteredLabs = currentLabs;
+            if (query) {
+                filteredLabs = filteredLabs.filter(lab => 
+                    lab.name.toLowerCase().includes(query) ||
+                    lab.description.toLowerCase().includes(query)
+                );
+            }
+            if (category) {
+                filteredLabs = filteredLabs.filter(lab => lab.category === category);
+            }
+            if (status) {
+                filteredLabs = filteredLabs.filter(lab => lab.status === status);
+            }
+            
+            // Filtrar resources
+            let filteredResources = currentResources;
+            if (query) {
+                filteredResources = filteredResources.filter(res => 
+                    res.name.toLowerCase().includes(query) ||
+                    res.description.toLowerCase().includes(query)
+                );
+            }
+            if (category) {
+                filteredResources = filteredResources.filter(res => res.category === category);
+            }
+            if (status) {
+                filteredResources = filteredResources.filter(res => res.status === status);
+            }
+            
+            renderLabs(filteredLabs);
+            renderResources(filteredResources);
+            
+            showNotification(`${filteredLabs.length + filteredResources.length} resultados encontrados`, 'success');
+        }
+
+        window.clearFilters = function() {
+            document.getElementById('searchForm').reset();
+            renderLabs(currentLabs);
+            renderResources(currentResources);
+            showNotification('Filtros limpiados', 'info');
+        };
+
+        // Tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(`${tab}-content`).classList.add('active');
+            });
+        });
+
+        // Modal
+        window.viewLabDetails = function(id) {
+            const lab = currentLabs.find(l => l.id === id);
+            if (!lab) return;
+            
+            document.getElementById('modalTitle').textContent = lab.name;
+            document.getElementById('modalBody').innerHTML = `
+                <div>
+                    <img src="${lab.image}" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;">
+                    <p>${lab.description}</p>
+                    <h4>Información General</h4>
+                    <ul>
+                        <li><strong>Ubicación:</strong> ${lab.building} - ${lab.floor}° piso, ${lab.room}</li>
+                        <li><strong>Capacidad:</strong> ${lab.capacity} personas</li>
+                        <li><strong>Responsable:</strong> ${lab.responsible}</li>
+                        <li><strong>Email:</strong> ${lab.email}</li>
+                        <li><strong>Teléfono:</strong> ${lab.phone}</li>
+                    </ul>
+                    
+                    <h4>Horarios</h4>
+                    <ul>
+                        ${Object.entries(lab.schedule).map(([day, hours]) => 
+                            `<li><strong>${day}:</strong> ${hours}</li>`
+                        ).join('')}
+                    </ul>
+                    
+                    <h4>Requisitos</h4>
+                    <ul>
+                        ${lab.requirements.map(req => `<li>${req}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('detailsModal').classList.add('show');
+        };
+
+        window.viewResourceDetails = function(id) {
+            const resource = currentResources.find(r => r.id === id);
+            if (!resource) return;
+            
+            document.getElementById('modalTitle').textContent = resource.name;
+            document.getElementById('modalBody').innerHTML = `
+                <div>
+                    <img src="${resource.image}" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;">
+                    <p>${resource.description}</p>
+                    
+                    <h4>Información</h4>
+                    <ul>
+                        <li><strong>Categoría:</strong> ${resource.category}</li>
+                        <li><strong>Laboratorio:</strong> ${resource.lab_name}</li>
+                        <li><strong>Disponibles:</strong> ${resource.quantity_available} de ${resource.quantity_total}</li>
+                    </ul>
+                    
+                    <h4>Especificaciones Técnicas</h4>
+                    <ul>
+                        ${Object.entries(resource.technical_specs).map(([key, value]) => 
+                            `<li><strong>${key}:</strong> ${value}</li>`
+                        ).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('detailsModal').classList.add('show');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('detailsModal').classList.remove('show');
+        };
+
+        window.createRequestFromModal = function() {
+            showNotification('Funcionalidad de solicitud en desarrollo', 'info');
+            closeModal();
+        };
+
+        // Cargar datos al iniciar
+        loadData();
+    </script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+        }
+
+        .tabs {
+            display: flex;
+            gap: var(--spacing-md);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-btn {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: var(--font-size-base);
+            color: var(--text-secondary);
+            transition: var(--transition-fast);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .grid-cols-2,
+            .grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>
