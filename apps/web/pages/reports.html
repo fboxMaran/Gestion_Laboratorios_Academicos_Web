@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes Técnicos - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/reports.css">
+    <link rel="stylesheet" href="../assets/css/search-tech.css">
+    <script type="module" src="../assets/js/reports.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>📊 Reportes Técnicos</h2>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-notifications">
+                    <span class="notification-badge">4</span>
+                    🔔
+                </div>
+                <div class="navbar-user">
+                    <span id="userName">Técnico</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./search-tech.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Solicitudes Aprobadas</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./inventory.html">
+                    <span class="sidebar-icon">📦</span>
+                    <span>Inventario</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./maintenance.html">
+                    <span class="sidebar-icon">🧰</span>
+                    <span>Mantenimientos</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./reports.html">
+                    <span class="sidebar-icon">📊</span>
+                    <span>Reportes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                    <span class="badge badge-error">5</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>                    
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <h1>📊 Reportes de Actividad</h1>
+            <p class="text-secondary">Consulta y exporta información sobre uso, inventario y mantenimiento.</p>
+
+            <!-- Selector de tipo de reporte -->
+            <div class="card mt-xl">
+                <div class="card-body">
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label for="reportType">Tipo de Reporte</label>
+                            <select id="reportType">
+                                <option value="usage">Uso de Recursos</option>
+                                <option value="stock">Stock Actual</option>
+                                <option value="maintenance">Historial de Mantenimiento</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dateRange">Rango de Fechas</label>
+                            <input type="month" id="dateRange">
+                        </div>
+                    </div>
+                    <div class="mt-md">
+                        <button class="btn btn-primary" id="btnGenerate">Generar Reporte</button>
+                        <button class="btn btn-outline" id="btnClear">Limpiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard de Reportes -->
+            <section class="mt-xl">
+                <h2>📊 Resumen General</h2>
+                <p class="text-secondary">Visualización rápida del estado de los laboratorios</p>
+
+                <div class="grid grid-cols-3 gap-lg mt-md">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3>Uso de Recursos</h3>
+                            <canvas id="chartUsage" height="180"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h3>Estado del Inventario</h3>
+                            <canvas id="chartStock" height="180"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h3>Mantenimientos</h3>
+                            <canvas id="chartMaintenance" height="180"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabla de datos -->
+            <div class="mt-xl">
+                <table class="table">
+                    <thead id="tableHead">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Recurso</th>
+                            <th>Laboratorio</th>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center text-secondary">Seleccione un tipo de reporte para comenzar.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Botones de exportación -->
+            <div class="mt-lg text-right">
+                <button class="btn btn-outline" id="exportPDF">📄 Exportar PDF</button>
+                <button class="btn btn-primary" id="exportExcel">📊 Exportar Excel</button>
+            </div>
+        </div>
+    </main>
+
+
+</body>
+</html>

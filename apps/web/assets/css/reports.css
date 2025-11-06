@@ -1,0 +1,72 @@
+#chartUsage, #chartStock, #chartMaintenance {
+    width: 100%;
+    max-height: 240px;
+}
+
+.grid-cols-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+
+@media (max-width: 900px) {
+    .grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.table th {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.table tr:hover {
+    background: var(--bg-hover);
+}
+
+.btn-primary, .btn-outline {
+    min-width: 150px;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    font-size: var(--font-size-sm);
+}
+
+.badge.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge.maintenance {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge.low-stock {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+@media (max-width: 768px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+}
