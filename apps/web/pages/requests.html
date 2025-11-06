@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Solicitudes - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🔬 Gestión de Laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-notifications">
+                    <span class="notification-badge" id="notificationCount">0</span>
+                    🔔
+                </div>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Mis Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">
+                    <span class="sidebar-icon">📚</span>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>📋 Mis Solicitudes</h1>
+                <a href="./new-request.html" class="btn btn-primary">
+                    ➕ Nueva Solicitud
+                </a>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mt-lg">
+                <div class="card-body">
+                    <form id="filterForm" class="filter-form">
+                        <div class="form-group">
+                            <label>Buscar</label>
+                            <input type="text" id="searchInput" placeholder="Buscar por recurso o laboratorio..." class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="statusFilter" class="form-control">
+                                <option value="">Todos</option>
+                                <option value="pending">Pendiente</option>
+                                <option value="approved">Aprobada</option>
+                                <option value="rejected">Rechazada</option>
+                                <option value="cancelled">Cancelada</option>
+                                <option value="completed">Completada</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha desde</label>
+                            <input type="date" id="dateFromFilter" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                            <button type="button" class="btn btn-outline" onclick="clearFilters()">Limpiar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div class="grid grid-cols-4 mt-lg">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">⏳</div>
+                        <h3 class="stat-number" id="pendingCount">0</h3>
+                        <p class="text-secondary">Pendientes</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">✅</div>
+                        <h3 class="stat-number" id="approvedCount">0</h3>
+                        <p class="text-secondary">Aprobadas</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">❌</div>
+                        <h3 class="stat-number" id="rejectedCount">0</h3>
+                        <p class="text-secondary">Rechazadas</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="stat-icon">📊</div>
+                        <h3 class="stat-number" id="totalCount">0</h3>
+                        <p class="text-secondary">Total</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Solicitudes -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h2>Mis Solicitudes</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Recurso</th>
+                                    <th>Laboratorio</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requestsTable">
+                                <tr>
+                                    <td colspan="7" class="text-center">Cargando solicitudes...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Detalles de Solicitud -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📋 Detalles de la Solicitud</h2>
+                <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <p class="text-center text-secondary">Cargando...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { formatDate, showNotification, validateForm } from '../assets/js/utils.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+
+        // Verificar autenticación
+        requireAuth();
+
+        // Hacer logout disponible globalmente
+        window.logout = authLogout;
+
+        // Variables globales
+        let allRequests = [];
+
+        // Cargar usuario
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name;
+        }
+
+        // Cargar datos iniciales
+        async function loadInitialData() {
+            try {
+                // Cargar solicitudes
+                allRequests = await api.getRequests();
+                renderRequests(allRequests);
+                updateStats(allRequests);
+
+                // Cargar notificaciones
+                const notifications = await api.getNotifications();
+                const unread = notifications.filter(n => !n.read).length;
+                document.getElementById('notificationCount').textContent = unread;
+
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                showNotification('Error al cargar datos', 'error');
+            }
+        }
+
+        // Actualizar estadísticas
+        function updateStats(requests) {
+            const pending = requests.filter(r => r.status === 'pending').length;
+            const approved = requests.filter(r => r.status === 'approved').length;
+            const rejected = requests.filter(r => r.status === 'rejected').length;
+            
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('approvedCount').textContent = approved;
+            document.getElementById('rejectedCount').textContent = rejected;
+            document.getElementById('totalCount').textContent = requests.length;
+        }
+
+        // Renderizar solicitudes
+        function renderRequests(requests) {
+            const tbody = document.getElementById('requestsTable');
+            
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay solicitudes</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = requests.map(req => `
+                <tr>
+                    <td>#${req.id}</td>
+                    <td>${req.resource_name}</td>
+                    <td>${req.lab_name}</td>
+                    <td>${formatDate(req.date_from, 'DD/MM/YYYY')}</td>
+                    <td>${formatDate(req.date_to, 'DD/MM/YYYY')}</td>
+                    <td>
+                        <span class="badge badge-${req.status}">
+                            ${getStatusText(req.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline" onclick="viewDetails(${req.id})">Ver</button>
+                        ${req.status === 'pending' ? 
+                            `<button class="btn btn-sm btn-error" onclick="cancelRequest(${req.id})">Cancelar</button>` 
+                            : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Pendiente',
+                'approved': 'Aprobada',
+                'rejected': 'Rechazada',
+                'cancelled': 'Cancelada',
+                'completed': 'Completada'
+            };
+            return statusMap[status] || status;
+        }
+
+        // Filtros
+        document.getElementById('filterForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            applyFilters();
+        });
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const dateFrom = document.getElementById('dateFromFilter').value;
+
+            let filtered = allRequests;
+
+            if (search) {
+                filtered = filtered.filter(req => 
+                    req.resource_name.toLowerCase().includes(search) ||
+                    req.lab_name.toLowerCase().includes(search)
+                );
+            }
+
+            if (status) {
+                filtered = filtered.filter(req => req.status === status);
+            }
+
+            if (dateFrom) {
+                filtered = filtered.filter(req => req.date_from >= dateFrom);
+            }
+
+            renderRequests(filtered);
+        }
+
+        window.clearFilters = function() {
+            document.getElementById('filterForm').reset();
+            renderRequests(allRequests);
+        };
+
+        // Ver detalles
+        window.viewDetails = function(id) {
+            const request = allRequests.find(r => r.id === id);
+            if (!request) return;
+
+            const content = document.getElementById('detailsContent');
+            content.innerHTML = `
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <strong>ID:</strong>
+                        <span>#${request.id}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Estado:</strong>
+                        <span class="badge badge-${request.status}">${getStatusText(request.status)}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Recurso:</strong>
+                        <span>${request.resource_name}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Laboratorio:</strong>
+                        <span>${request.lab_name}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Fecha Inicio:</strong>
+                        <span>${formatDate(request.date_from, 'DD/MM/YYYY HH:mm')}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>Fecha Fin:</strong>
+                        <span>${formatDate(request.date_to, 'DD/MM/YYYY HH:mm')}</span>
+                    </div>
+                    <div class="detail-item full-width">
+                        <strong>Propósito:</strong>
+                        <p>${request.purpose || 'N/A'}</p>
+                    </div>
+                    ${request.notes ? `
+                        <div class="detail-item full-width">
+                            <strong>Notas:</strong>
+                            <p>${request.notes}</p>
+                        </div>
+                    ` : ''}
+                    ${request.admin_notes ? `
+                        <div class="detail-item full-width">
+                            <strong>Notas del administrador:</strong>
+                            <p>${request.admin_notes}</p>
+                        </div>
+                    ` : ''}
+                    <div class="detail-item">
+                        <strong>Creada:</strong>
+                        <span>${formatDate(request.created_at, 'DD/MM/YYYY HH:mm')}</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeDetailsModal()">Cerrar</button>
+                    ${request.status === 'pending' ? 
+                        `<button class="btn btn-error" onclick="closeDetailsModal(); cancelRequest(${request.id})">Cancelar Solicitud</button>` 
+                        : ''}
+                </div>
+            `;
+
+            document.getElementById('detailsModal').classList.add('show');
+        };
+
+        window.closeDetailsModal = function() {
+            document.getElementById('detailsModal').classList.remove('show');
+        };
+
+        // Cerrar modal al hacer clic en el overlay
+        document.getElementById('detailsModal').addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeDetailsModal();
+            }
+        });
+
+        // Cancelar solicitud
+        window.cancelRequest = async function(id) {
+            if (!confirm('¿Estás seguro de que deseas cancelar esta solicitud?')) {
+                return;
+            }
+
+            try {
+                await api.cancelRequest(id);
+                showNotification('Solicitud cancelada', 'success');
+                // Recargar solicitudes
+                allRequests = await api.getRequests();
+                renderRequests(allRequests);
+                updateStats(allRequests);
+            } catch (error) {
+                console.error('Error al cancelar solicitud:', error);
+                showNotification('Error al cancelar la solicitud', 'error');
+            }
+        };
+
+        // Cargar datos al inicio
+        loadInitialData();
+    </script>
+
+    <style>
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Page specific */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .filter-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: var(--spacing-md);
+            align-items: end;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .detail-item strong {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-3xl);
+            font-weight: bold;
+            color: var(--primary);
+            margin: var(--spacing-xs) 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-md);
+            }
+
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal {
+                padding: 10px;
+            }
+
+            .modal-content {
+                max-height: 95vh;
+                width: 95%;
+                max-width: 100%;
+            }
+
+            .modal-header {
+                padding: 20px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            .modal-footer {
+                padding: 16px 20px;
+            }
+
+            .modal-header h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</body>
+</html>
