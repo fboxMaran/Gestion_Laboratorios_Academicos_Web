@@ -1,0 +1,47 @@
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.table th {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.table tr:hover {
+    background: var(--bg-hover);
+}
+
+.badge {
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+    font-size: var(--font-size-sm);
+}
+
+.badge.available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge.maintenance {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge.out {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+@media (max-width: 768px) {
+    .grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+}
