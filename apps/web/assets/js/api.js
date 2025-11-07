@@ -87,8 +87,15 @@ class MockAPI {
     // Profile
     async getProfile() {
         await simulateNetworkDelay();
-        return this.loadMockData('profile');
+
+        const userData = JSON.parse(localStorage.getItem('user_data'));
+        if (userData && userData.role === 'technician') {
+            return this.loadMockData('profile_technician');
+        } else {
+            return this.loadMockData('profile');
+        }
     }
+
 
     async updateProfile(data) {
         await simulateNetworkDelay();
@@ -171,7 +178,15 @@ class MockAPI {
         await simulateNetworkDelay();
         return { success: true };
     }
+
+    async getInventory() {
+        await simulateNetworkDelay();
+        return this.loadMockData('resources');
+    }
+
+
 }
+
 
 /**
  * API REAL - Hace peticiones HTTP al backend
@@ -243,6 +258,11 @@ class RealAPI {
     async getRequests() {
         return this.request(API_CONFIG.ENDPOINTS.REQUESTS);
     }
+
+    async getInventory() {
+        return this.request(API_CONFIG.ENDPOINTS.INVENTORY);
+    }
+
 
     async createRequest(requestData) {
         return this.request(API_CONFIG.ENDPOINTS.CREATE_REQUEST, {

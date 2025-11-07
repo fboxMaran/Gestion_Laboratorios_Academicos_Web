@@ -1,44 +1,143 @@
-// Script base del módulo técnico
-
-import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
-import { showNotification } from '../assets/js/utils.js';
-
-// Autenticación
+import api from '../js/api.js';
+import { requireAuth, getCurrentUser, logout as authLogout } from '../js/auth.js';
+// Verificar autenticación
 requireAuth();
+
+// Hacer logout disponible globalmente
 window.logout = authLogout;
 
-// Mostrar nombre del usuario actual
+// Mostrar nombre del técnico
 const user = getCurrentUser();
 if (user) {
     document.getElementById('userName').textContent = user.name;
 }
 
-// Referencias de elementos
+const tableBody = document.getElementById('requestsTableBody');
+const filterUser = document.getElementById('filterUser');
+const filterDate = document.getElementById('filterDate');
+const filterStatus = document.getElementById('filterStatus');
 const btnFilter = document.getElementById('btnFilter');
 const btnClear = document.getElementById('btnClear');
-const tableBody = document.getElementById('requestsTableBody');
 
-// Eventos base
-btnFilter.addEventListener('click', () => {
-    showNotification('Filtros aplicados (sin funcionalidad aún)', 'info');
-});
+let requests = [];
 
-btnClear.addEventListener('click', () => {
-    document.getElementById('filterUser').value = '';
-    document.getElementById('filterDate').value = '';
-    document.getElementById('filterStatus').value = '';
-    showNotification('Filtros limpiados', 'info');
-});
-
-// Cargar solicitudes (más adelante se conectará con la API)
-function loadRequests() {
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="6" class="text-center text-secondary">
-                Aquí se mostrarán las solicitudes aprobadas del laboratorio.
-            </td>
-        </tr>
-    `;
+// 🔹 Cargar todas las solicitudes desde el mock
+async function loadRequests() {
+    try {
+        requests = await api.getRequests();
+        console.log('Solicitudes cargadas:', requests);
+        renderTable(requests);
+    } catch (error) {
+        console.error('Error al cargar solicitudes:', error);
+        tableBody.innerHTML = `
+            <tr><td colspan="6" class="text-center text-error">
+                Error al cargar solicitudes
+            </td></tr>`;
+    }
 }
 
-loadRequests();
+// 🔹 Renderizar tabla
+function renderTable(data) {
+    tableBody.innerHTML = '';
+
+    if (!data.length) {
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center text-secondary">No hay solicitudes</td></tr>`;
+        return;
+    }
+
+    data.forEach(req => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${req.approved_by || '—'}</td>
+            <td>${req.resource_name}</td>
+            <td>${req.lab_name}</td>
+            <td>${req.date_from}</td>
+            <td><span class="badge ${getStatusClass(req.status)}">${formatStatus(req.status)}</span></td>
+            <td>${getActionButtons(req)}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// 🔹 Filtrar
+btnFilter.addEventListener('click', () => {
+    const userValue = filterUser.value.toLowerCase();
+    const dateValue = filterDate.value;
+    const statusValue = filterStatus.value;
+
+    const filtered = requests.filter(r => {
+        const matchUser = userValue
+            ? (r.approved_by?.toLowerCase().includes(userValue) || r.lab_name.toLowerCase().includes(userValue))
+            : true;
+        const matchDate = dateValue ? r.date_from === dateValue : true;
+        const matchStatus = statusValue ? r.status === statusValue : true;
+        return matchUser && matchDate && matchStatus;
+    });
+
+    renderTable(filtered);
+});
+
+// 🔹 Limpiar filtros
+btnClear.addEventListener('click', () => {
+    filterUser.value = '';
+    filterDate.value = '';
+    filterStatus.value = '';
+    renderTable(requests);
+});
+
+// 🔹 Actualizar estado (simulado)
+function updateStatus(id, newStatus) {
+    const req = requests.find(r => r.id == id);
+    if (!req) return;
+    req.status = newStatus;
+    renderTable(requests);
+    alert(`Solicitud #${id} actualizada a "${formatStatus(newStatus)}"`);
+}
+
+// 🔹 Botones según estado
+function getActionButtons(req) {
+    const id = req.id;
+    switch (req.status) {
+        case 'pending':
+            return `
+                <button class="btn btn-sm btn-success" onclick="updateStatus(${id}, 'approved')">Aprobar</button>
+                <button class="btn btn-sm btn-error" onclick="updateStatus(${id}, 'rejected')">Rechazar</button>`;
+        case 'approved':
+            return `<button class="btn btn-sm btn-primary" onclick="updateStatus(${id}, 'delivered')">Registrar Entrega</button>`;
+        case 'delivered':
+            return `<button class="btn btn-sm btn-outline" onclick="updateStatus(${id}, 'returned')">Registrar Devolución</button>`;
+        default:
+            return '<span class="text-secondary">—</span>';
+    }
+}
+
+// 🔹 Etiquetas de estado
+function getStatusClass(status) {
+    switch (status) {
+        case 'pending': return 'badge-warning';
+        case 'approved': return 'badge-success';
+        case 'rejected': return 'badge-error';
+        case 'delivered': return 'badge-info';
+        case 'returned': return 'badge-secondary';
+        default: return 'badge-light';
+    }
+}
+
+function formatStatus(status) {
+    const map = {
+        pending: 'Pendiente',
+        approved: 'Aprobada',
+        rejected: 'Rechazada',
+        delivered: 'Entregada',
+        returned: 'Devuelta',
+        completed: 'Completada',
+        cancelled: 'Cancelada'
+    };
+    return map[status] || status;
+}
+
+// Hacer la función accesible globalmente para onclicks
+window.updateStatus = updateStatus;
+
+// Inicializar
+loadRequests();    

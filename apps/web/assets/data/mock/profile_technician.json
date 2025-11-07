@@ -1,0 +1,13 @@
+{
+  "id": 3,
+  "name": "Carlos Rojas",
+  "email": "tecnico@demo.edu",
+  "phone": "+506 8888-2222",
+  "department": "Laboratorio de Electrónica",
+  "position": "Técnico de Laboratorio",
+  "status": "active",
+  "bio": "Encargado del mantenimiento y supervisión del laboratorio de electrónica.",
+  "trainings_completed": 12,
+  "total_reservations": 54,
+  "created_at": "2020-01-10T00:00:00Z"
+}

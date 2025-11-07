@@ -85,7 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveSession(response.token, response.user);
                 
                 // Redirigir al dashboard
-                window.location.href = './pages/dashboard.html';
+                // Redirigir al dashboard según rol
+                if (response.user.role === 'technician') {
+                    window.location.href = './pages/search-tech.html';
+                } else {
+                    window.location.href = './pages/dashboard.html';
+                }
+
                 
             } catch (error) {
                 alert('Error al iniciar sesión: ' + error.message);

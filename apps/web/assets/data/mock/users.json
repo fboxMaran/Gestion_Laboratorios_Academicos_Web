@@ -18,5 +18,14 @@
     "department": "Ingeniería Electrónica",
     "phone": "+506 7777-8888",
     "student_id": "2020098765"
+  },
+  {
+    "id": 3,
+    "name": "Carlos Rojas",
+    "email": "tecnico@demo.edu",
+    "password": "tec123",
+    "role": "technician",
+    "department": "Laboratorio de Electrónica",
+    "phone": "+506 8888-2222"
   }
 ]

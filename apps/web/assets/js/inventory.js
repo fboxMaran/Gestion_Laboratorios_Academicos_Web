@@ -1,6 +1,8 @@
-import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
-import { showNotification } from '../assets/js/utils.js';
+import api from '../js/api.js';
+import { requireAuth, getCurrentUser, logout as authLogout } from '../js/auth.js';
+import { showNotification } from '../js/utils.js';
 
+// ==================== SESIÓN ====================
 requireAuth();
 window.logout = authLogout;
 
@@ -9,66 +11,135 @@ if (user) {
     document.getElementById('userName').textContent = user.name;
 }
 
-const DATA_SOURCE = 'apps/web/assets/data/mock';
+// ==================== INVENTARIO ====================
+let resources = [];
 
-let inventoryData = [];
-
+// Cargar inventario desde el mock (usa api.searchResources() → resources.json)
 async function loadInventory() {
     try {
-        const response = await fetch(DATA_SOURCE);
-        inventoryData = await response.json();
-        renderInventory(inventoryData);
-    } catch (err) {
-        console.error('Error al cargar inventario:', err);
-        showNotification('Error al cargar inventario', 'error');
+        resources = await api.searchResources();
+        console.log('Inventario cargado:', resources);
+
+        populateFilterOptions(resources); // <-- rellenar selects dinámicamente
+        renderInventory(resources);
+    } catch (error) {
+        console.error('Error al cargar inventario:', error);
+        const tbody = document.getElementById('inventoryTableBody');
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-error">Error al cargar inventario</td></tr>`;
     }
 }
 
+// Renderizar tabla de inventario con imagen, descripción y cantidad
 function renderInventory(data) {
     const tbody = document.getElementById('inventoryTableBody');
     if (!data || data.length === 0) {
-        tbody.innerHTML = `
-            <tr><td colspan="6" class="text-center text-secondary">
-                No se encontraron recursos.
-            </td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-secondary">No se encontraron recursos.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = data.map(item => `
         <tr>
-            <td>${item.name}</td>
+            <td style="display:flex; align-items:center; gap:10px;">
+                <img src="${item.image}" alt="${item.name}" width="60" height="45" style="border-radius:6px; object-fit:cover;">
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <small class="text-secondary">${item.description}</small>
+                </div>
+            </td>
             <td>${item.category}</td>
-            <td>${item.lab}</td>
-            <td>${item.available} / ${item.total}</td>
-            <td><span class="badge ${item.status}">${translateStatus(item.status)}</span></td>
+            <td>${item.lab_name}</td>
+            <td>${item.quantity_available} / ${item.quantity_total}</td>
+            <td><span class="badge ${getStatusClass(item.status)}">${translateStatus(item.status)}</span></td>
             <td>
-                <button class="btn btn-sm btn-outline">Editar</button>
-                <button class="btn btn-sm btn-error">Eliminar</button>
+                <button class="btn btn-sm btn-outline" onclick="showDetails(${item.id})">Detalles</button>
+                <button class="btn btn-sm btn-error" onclick="deleteItem(${item.id})">Eliminar</button>
             </td>
         </tr>
     `).join('');
 }
 
+// ==================== UTILIDADES ====================
 function translateStatus(status) {
     switch (status) {
         case 'available': return 'Disponible';
         case 'maintenance': return 'Mantenimiento';
+        case 'reserved': return 'Reservado';
         case 'out': return 'Agotado';
         default: return 'Desconocido';
     }
 }
 
-document.getElementById('btnFilter').addEventListener('click', () => {
-    const category = document.getElementById('filterCategory').value;
-    const status = document.getElementById('filterStatus').value;
-    const search = document.getElementById('filterSearch').value.toLowerCase();
+function getStatusClass(status) {
+    switch (status) {
+        case 'available': return 'badge-success';
+        case 'maintenance': return 'badge-warning';
+        case 'reserved': return 'badge-info';
+        case 'out': return 'badge-error';
+        default: return 'badge-light';
+    }
+}
 
-    const filtered = inventoryData.filter(item => {
-        return (
-            (category === '' || item.category === category) &&
-            (status === '' || item.status === status) &&
-            (item.name.toLowerCase().includes(search))
-        );
+// ==================== FILTROS DINÁMICOS ====================
+function populateFilterOptions(data) {
+    const catSelect = document.getElementById('filterCategory');
+    const statusSelect = document.getElementById('filterStatus');
+
+    // Guardar valores únicos
+    const categories = Array.from(new Set(data.map(i => (i.category || '').trim()))).filter(Boolean);
+    const statuses = Array.from(new Set(data.map(i => (i.status || '').trim()))).filter(Boolean);
+
+    // Limpiar (mantener la opción "Todas"/"Todos")
+    // Si tus selects ya incluyen una opción por defecto con value "", la dejamos y agregamos después.
+    // Primero quitamos todas las opciones excepto la primera:
+    while (catSelect.options.length > 1) catSelect.remove(1);
+    while (statusSelect.options.length > 1) statusSelect.remove(1);
+
+    // Añadir categorías ordenadas alfabéticamente
+    categories.sort((a,b) => a.localeCompare(b, 'es')).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        catSelect.appendChild(opt);
+    });
+
+    // Añadir estados (traducción opcional en label)
+    // Mapa para mostrar etiqueta amigable (puedes expandir si hay más estados)
+    const statusLabel = {
+        available: 'Disponible',
+        maintenance: 'Mantenimiento',
+        reserved: 'Reservado',
+        out: 'Agotado'
+    };
+
+    statuses.sort((a,b) => a.localeCompare(b, 'es')).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s;
+        opt.textContent = statusLabel[s] || s;
+        statusSelect.appendChild(opt);
+    });
+}
+
+// ==================== FILTRADO (robusto, case-insensitive) ====================
+document.getElementById('btnFilter').addEventListener('click', () => {
+    const categoryRaw = document.getElementById('filterCategory').value;
+    const statusRaw = document.getElementById('filterStatus').value;
+    const searchRaw = document.getElementById('filterSearch').value;
+
+    const category = (categoryRaw || '').toString().trim().toLowerCase();
+    const status = (statusRaw || '').toString().trim().toLowerCase();
+    const search = (searchRaw || '').toString().trim().toLowerCase();
+
+    const filtered = resources.filter(item => {
+        const itemCategory = (item.category || '').toString().trim().toLowerCase();
+        const itemStatus = (item.status || '').toString().trim().toLowerCase();
+        const itemName = (item.name || '').toString().toLowerCase();
+        const itemLab = (item.lab_name || '').toString().toLowerCase();
+
+        const matchesCategory = category === '' || itemCategory === category;
+        const matchesStatus = status === '' || itemStatus === status;
+        const matchesSearch = search === '' || itemName.includes(search) || itemLab.includes(search);
+
+        return matchesCategory && matchesStatus && matchesSearch;
     });
 
     renderInventory(filtered);
@@ -79,88 +150,39 @@ document.getElementById('btnClear').addEventListener('click', () => {
     document.getElementById('filterCategory').value = '';
     document.getElementById('filterStatus').value = '';
     document.getElementById('filterSearch').value = '';
-    renderInventory(inventoryData);
+    renderInventory(resources);
     showNotification('Filtros limpiados', 'info');
 });
 
-// ==================== DASHBOARD ====================
+// ==================== ACCIONES (mock) ====================
+window.showDetails = function(id) {
+    const item = resources.find(i => i.id === id);
+    if (!item) return;
 
-function renderDashboard() {
-    // Calcular datos base
-    const usageData = reportsData.filter(r => r.type === 'usage');
-    const maintenanceData = reportsData.filter(r => r.type === 'maintenance');
-    const stockData = reportsData.filter(r => r.type === 'stock');
+    const specs = Object.entries(item.technical_specs || {})
+        .map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`)
+        .join('');
 
-    // 1️⃣ Uso de recursos por laboratorio
-    const usageByLab = {};
-    usageData.forEach(r => {
-        usageByLab[r.lab] = (usageByLab[r.lab] || 0) + 1;
-    });
+    const details = `
+        ${item.name}\n\n
+        ${item.description}\n\n
+        Especificaciones:\n
+        ${specs.replace(/<[^>]*>?/gm, '')}\n\n
+        Ubicación: ${item.lab_name}\n
+        Cantidad disponible: ${item.quantity_available}/${item.quantity_total}
+    `;
 
-    new Chart(document.getElementById('chartUsage'), {
-        type: 'bar',
-        data: {
-            labels: Object.keys(usageByLab),
-            datasets: [{
-                label: 'Cantidad de usos',
-                data: Object.values(usageByLab),
-                backgroundColor: '#4e73df'
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-
-    // 2️⃣ Estado del inventario
-    const stockSummary = {
-        "Disponible": stockData.filter(r => r.status === 'completed').length,
-        "Bajo stock": stockData.filter(r => r.status === 'low-stock').length
-    };
-
-    new Chart(document.getElementById('chartStock'), {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(stockSummary),
-            datasets: [{
-                data: Object.values(stockSummary),
-                backgroundColor: ['#1cc88a', '#e74a3b']
-            }]
-        },
-        options: {
-            plugins: { legend: { position: 'bottom' } }
-        }
-    });
-
-    // 3️⃣ Historial de mantenimientos
-    const maintenanceByDate = {};
-    maintenanceData.forEach(r => {
-        maintenanceByDate[r.date] = (maintenanceByDate[r.date] || 0) + 1;
-    });
-
-    new Chart(document.getElementById('chartMaintenance'), {
-        type: 'line',
-        data: {
-            labels: Object.keys(maintenanceByDate),
-            datasets: [{
-                label: 'Mantenimientos realizados',
-                data: Object.values(maintenanceByDate),
-                borderColor: '#f6c23e',
-                backgroundColor: 'rgba(246,194,62,0.3)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
+    // Si quieres una vista bonita reemplaza alert por un modal real; esto muestra la info rápidamente.
+    alert(details);
 }
 
+window.deleteItem = function(id) {
+    if (confirm('¿Seguro que deseas eliminar este recurso?')) {
+        resources = resources.filter(i => i.id !== id);
+        renderInventory(resources);
+        showNotification('Recurso eliminado', 'success');
+    }
+}
 
-loadReports().then(() => {
-    renderDashboard(); // Mostrar las gráficas al cargar datos
-});
-
+// ==================== INICIO ====================
+loadInventory();
