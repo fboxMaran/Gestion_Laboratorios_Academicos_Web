@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mantenimientos - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/search-tech.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🧰 Mantenimientos</h2>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-user">
+                    <span id="userName">Técnico</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./search-tech.html"><span class="sidebar-icon">📋</span> Solicitudes Aprobadas</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./inventory.html"><span class="sidebar-icon">📦</span> Inventario</a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./maintenance.html"><span class="sidebar-icon">🧰</span> Mantenimientos</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./reports.html"><span class="sidebar-icon">📊</span> Reportes</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html"><span class="sidebar-icon">🔔</span> Notificaciones</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html"><span class="sidebar-icon">👤</span> Mi Perfil</a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="container">
+            <h1>🧰 Gestión de Mantenimientos</h1>
+            <p class="text-secondary">Programa, registra y controla el estado de laboratorios o recursos en mantenimiento.</p>
+
+            <!-- Filtros -->
+            <div class="card mt-xl">
+                <div class="card-body grid grid-cols-3">
+                    <div class="form-group">
+                        <label for="filterType">Tipo de elemento</label>
+                        <select id="filterType">
+                            <option value="">Todos</option>
+                            <option value="resource">Recursos</option>
+                            <option value="lab">Laboratorios</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterStatus">Estado</label>
+                        <select id="filterStatus">
+                            <option value="">Todos</option>
+                            <option value="available">Disponible</option>
+                            <option value="scheduled">Agendado</option>
+                            <option value="maintenance">En Mantenimiento</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterSearch">Buscar</label>
+                        <input type="text" id="filterSearch" placeholder="Ej: Osciloscopio, Electrónica...">
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary" id="btnFilter">Aplicar Filtros</button>
+                    <button class="btn btn-outline" id="btnClear">Limpiar</button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="mt-xl">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Nombre</th>
+                            <th>Ubicación / Laboratorio</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenanceTableBody">
+                        <tr><td colspan="5" class="text-center text-secondary">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de programación -->
+    <div class="modal-overlay" id="maintenanceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Programar Mantenimiento</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="maintenanceForm">
+                    <input type="hidden" id="maintenanceType">
+                    <input type="hidden" id="maintenanceId">
+
+                    <div class="form-group">
+                        <label for="startDate">Fecha y hora de inicio</label>
+                        <input type="datetime-local" id="startDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endDate">Fecha y hora de finalización</label>
+                        <input type="datetime-local" id="endDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Descripción</label>
+                        <textarea id="description" placeholder="Ej: Limpieza, calibración o actualización de software" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelModal">Cancelar</button>
+                <button class="btn btn-primary" id="saveMaintenance">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../assets/js/maintenance.js"></script>
+</body>
+</html>

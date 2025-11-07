@@ -1,0 +1,16 @@
+/* Estilo personalizado para el modal de mantenimiento */
+#maintenanceModal .modal {
+    max-width: 450px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+#maintenanceModal textarea {
+    min-height: 80px;
+}
+
+#maintenanceModal .modal-header {
+    background-color: var(--primary-light);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
