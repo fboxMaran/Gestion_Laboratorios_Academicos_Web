@@ -184,6 +184,16 @@ class MockAPI {
         return this.loadMockData('resources');
     }
 
+    // Reports
+    async getReports() {
+        await simulateNetworkDelay();
+        return this.loadMockData('reports');
+    }
+
+    async exportReport(format = 'pdf') {
+        await simulateNetworkDelay(400);
+        return { success: true, message: `Exportación ${format.toUpperCase()} simulada.` };
+    }
 
 }
 
@@ -301,6 +311,19 @@ class RealAPI {
             method: 'POST'
         });
     }
+
+    // Reports
+    async getReports() {
+        return this.request(API_CONFIG.ENDPOINTS.REPORTS);
+    }
+
+    async exportReport(format = 'pdf') {
+        const endpoint = format === 'excel' 
+            ? API_CONFIG.ENDPOINTS.EXPORT_EXCEL 
+            : API_CONFIG.ENDPOINTS.EXPORT_PDF;
+        return this.request(endpoint, { method: 'GET' });
+    }
+
 }
 
 /**

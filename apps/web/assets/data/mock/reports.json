@@ -1,0 +1,82 @@
+[
+  {
+    "type": "usage",
+    "resource": "Osciloscopio Digital 100MHz",
+    "lab": "Laboratorio de Electrónica",
+    "date": "2025-10-15",
+    "user": "Juan Pérez",
+    "status": "completed"
+  },
+  {
+    "type": "usage",
+    "resource": "Arduino Mega 2560",
+    "lab": "Laboratorio de Robótica",
+    "date": "2025-10-17",
+    "user": "María González",
+    "status": "completed"
+  },
+  {
+    "type": "usage",
+    "resource": "Multímetro Digital",
+    "lab": "Laboratorio de Electrónica",
+    "date": "2025-10-20",
+    "user": "Carlos Jiménez",
+    "status": "completed"
+  },
+  {
+    "type": "stock",
+    "resource": "Arduino Mega 2560",
+    "lab": "Laboratorio de Robótica",
+    "date": "2025-10-31",
+    "user": "-",
+    "status": "completed"
+  },
+  {
+    "type": "stock",
+    "resource": "Osciloscopio Digital 100MHz",
+    "lab": "Laboratorio de Electrónica",
+    "date": "2025-10-31",
+    "user": "-",
+    "status": "low-stock"
+  },
+  {
+    "type": "stock",
+    "resource": "Multímetro Digital",
+    "lab": "Laboratorio de Electrónica",
+    "date": "2025-10-31",
+    "user": "-",
+    "status": "completed"
+  },
+  {
+    "type": "maintenance",
+    "resource": "Laboratorio de Química",
+    "lab": "Edificio C - Sala 304",
+    "date": "2025-10-05",
+    "user": "Técnico Luis Gómez",
+    "status": "maintenance"
+  },
+  {
+    "type": "maintenance",
+    "resource": "Impresora 3D",
+    "lab": "Laboratorio de Robótica",
+    "date": "2025-10-10",
+    "user": "Técnico Ana Rojas",
+    "status": "completed"
+  },
+  {
+    "type": "maintenance",
+    "resource": "Laboratorio de Electrónica",
+    "lab": "Edificio A - Sala 201",
+    "date": "2025-10-14",
+    "user": "Técnico Juan Pablo",
+    "status": "completed"
+  },
+  {
+    "type": "maintenance",
+    "resource": "Microscopio Óptico",
+    "lab": "Laboratorio de Química",
+    "date": "2025-10-28",
+    "user": "Técnico Luis Gómez",
+    "status": "maintenance"
+  }
+]

@@ -43,7 +43,13 @@ export const API_CONFIG = {
         NOTIFICATIONS: '/notifications',
         MARK_READ: '/notifications/:id/read',
         MARK_ALL_READ: '/notifications/read-all',
-        DELETE_NOTIFICATION: '/notifications/:id'
+        DELETE_NOTIFICATION: '/notifications/:id',
+
+        // Reports
+        REPORTS: '/reports',
+        EXPORT_PDF: '/reports/export/pdf',
+        EXPORT_EXCEL: '/reports/export/excel'
+
     }
 };
 
