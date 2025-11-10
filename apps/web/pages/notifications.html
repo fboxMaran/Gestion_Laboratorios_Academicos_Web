@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🔬 Gestión de Laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <a href="./notifications.html" class="navbar-notifications">
+                    <span class="notification-badge">3</span>
+                    🔔
+                </a>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Mis Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">
+                    <span class="sidebar-icon">📚</span>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <div>
+                    <h1>🔔 Notificaciones</h1>
+                    <p class="text-secondary">Mantente al tanto de todas tus actividades y actualizaciones</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="markAllAsRead()">
+                        ✓ Marcar todo como leído
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card mt-lg">
+                <div class="card-body">
+                    <div class="notification-filters">
+                        <button class="filter-btn active" data-filter="all" onclick="filterNotifications('all')">
+                            📬 Todas <span class="filter-count" id="countAll">0</span>
+                        </button>
+                        <button class="filter-btn" data-filter="unread" onclick="filterNotifications('unread')">
+                            🔴 No leídas <span class="filter-count" id="countUnread">0</span>
+                        </button>
+                        <button class="filter-btn" data-filter="request" onclick="filterNotifications('request')">
+                            📋 Solicitudes <span class="filter-count" id="countRequest">0</span>
+                        </button>
+                        <button class="filter-btn" data-filter="reservation" onclick="filterNotifications('reservation')">
+                            📚 Reservas <span class="filter-count" id="countReservation">0</span>
+                        </button>
+                        <button class="filter-btn" data-filter="system" onclick="filterNotifications('system')">
+                            ⚙️ Sistema <span class="filter-count" id="countSystem">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Notificaciones -->
+            <div class="card mt-lg">
+                <div class="card-body">
+                    <div id="notificationsList" class="notifications-container">
+                        <div class="text-center text-secondary py-xl">
+                            Cargando notificaciones...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Detalles de Notificación -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📋 Detalles de la Notificación</h2>
+                <button class="modal-close" onclick="closeDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <p class="text-center text-secondary">Cargando...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeDetailsModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { formatDate, showNotification } from '../assets/js/utils.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+
+        // Verificar autenticación
+        requireAuth();
+
+        // Hacer logout disponible globalmente
+        window.logout = authLogout;
+
+        // Variables globales
+        let allNotifications = [];
+        let currentFilter = 'all';
+
+        // Cargar usuario
+        const user = getCurrentUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name;
+        }
+
+        // Cargar notificaciones
+        async function loadNotifications() {
+            try {
+                allNotifications = await api.getNotifications();
+                
+                // Ordenar por fecha (más reciente primero)
+                allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                
+                updateCounts();
+                renderNotifications(allNotifications);
+                updateBadge();
+
+            } catch (error) {
+                console.error('Error al cargar notificaciones:', error);
+                showNotification('Error al cargar notificaciones', 'error');
+            }
+        }
+
+        // Actualizar contadores
+        function updateCounts() {
+            const unread = allNotifications.filter(n => !n.read).length;
+            const requests = allNotifications.filter(n => n.type === 'request').length;
+            const reservations = allNotifications.filter(n => n.type === 'reservation').length;
+            const system = allNotifications.filter(n => n.type === 'system').length;
+
+            document.getElementById('countAll').textContent = allNotifications.length;
+            document.getElementById('countUnread').textContent = unread;
+            document.getElementById('countRequest').textContent = requests;
+            document.getElementById('countReservation').textContent = reservations;
+            document.getElementById('countSystem').textContent = system;
+        }
+
+        // Actualizar badge en navbar
+        function updateBadge() {
+            const unread = allNotifications.filter(n => !n.read).length;
+            document.getElementById('notificationCount').textContent = unread;
+        }
+
+        // Renderizar notificaciones
+        function renderNotifications(notifications) {
+            const container = document.getElementById('notificationsList');
+
+            if (notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-secondary py-xl">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+                        <p>No hay notificaciones para mostrar</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = notifications.map(notif => {
+                const icon = getNotificationIcon(notif.type);
+                const readClass = notif.read ? 'notification-read' : 'notification-unread';
+                const timeAgo = getTimeAgo(notif.created_at);
+
+                return `
+                    <div class="notification-item ${readClass}" data-id="${notif.id}">
+                        <div class="notification-icon ${notif.type}">
+                            ${icon}
+                        </div>
+                        <div class="notification-content" onclick="viewNotificationDetails(${notif.id})">
+                            <div class="notification-header">
+                                <h4>${notif.title}</h4>
+                                <span class="notification-time">${timeAgo}</span>
+                            </div>
+                            <p class="notification-message">${notif.message}</p>
+                            ${notif.action_url ? `<a href="${notif.action_url}" class="notification-link">Ver detalles →</a>` : ''}
+                        </div>
+                        <div class="notification-actions">
+                            ${!notif.read ? `
+                                <button class="btn-icon" onclick="markAsRead(${notif.id}, event)" title="Marcar como leído">
+                                    ✓
+                                </button>
+                            ` : ''}
+                            <button class="btn-icon btn-delete" onclick="deleteNotification(${notif.id}, event)" title="Eliminar">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Obtener icono según tipo
+        function getNotificationIcon(type) {
+            const icons = {
+                'request': '📋',
+                'reservation': '📚',
+                'system': '⚙️',
+                'reminder': '⏰',
+                'alert': '⚠️'
+            };
+            return icons[type] || '📬';
+        }
+
+        // Calcular tiempo transcurrido
+        function getTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000); // diferencia en segundos
+
+            if (diff < 60) return 'Ahora';
+            if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
+            if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`;
+            if (diff < 604800) return `Hace ${Math.floor(diff / 86400)} días`;
+            
+            return formatDate(dateString, 'DD/MM/YYYY');
+        }
+
+        // Filtrar notificaciones
+        window.filterNotifications = function(filter) {
+            currentFilter = filter;
+
+            // Actualizar botones activos
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Filtrar y renderizar
+            let filtered = allNotifications;
+
+            if (filter === 'unread') {
+                filtered = allNotifications.filter(n => !n.read);
+            } else if (filter !== 'all') {
+                filtered = allNotifications.filter(n => n.type === filter);
+            }
+
+            renderNotifications(filtered);
+        };
+
+        // Ver detalles de notificación
+        window.viewNotificationDetails = async function(id) {
+            const notif = allNotifications.find(n => n.id === id);
+            if (!notif) return;
+
+            // Marcar como leída automáticamente
+            if (!notif.read) {
+                await markAsRead(id, null, false);
+            }
+
+            const content = document.getElementById('detailsContent');
+            content.innerHTML = `
+                <div class="notification-details">
+                    <div class="detail-icon ${notif.type}">
+                        ${getNotificationIcon(notif.type)}
+                    </div>
+                    <h3 class="mt-md">${notif.title}</h3>
+                    <p class="text-secondary text-sm">${formatDate(notif.created_at, 'DD/MM/YYYY HH:mm')}</p>
+                    
+                    <div class="detail-content mt-lg">
+                        <p>${notif.message}</p>
+                        
+                        ${notif.details ? `
+                            <div class="mt-md">
+                                <strong>Información adicional:</strong>
+                                <p class="text-secondary">${notif.details}</p>
+                            </div>
+                        ` : ''}
+                        
+                        ${notif.action_url ? `
+                            <div class="mt-lg">
+                                <a href="${notif.action_url}" class="btn btn-primary">
+                                    Ver más detalles
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('detailsModal').classList.add('show');
+        };
+
+        window.closeDetailsModal = function() {
+            document.getElementById('detailsModal').classList.remove('show');
+        };
+
+        // Cerrar modal al hacer clic en el overlay
+        document.getElementById('detailsModal').addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeDetailsModal();
+            }
+        });
+
+        // Marcar como leída
+        window.markAsRead = async function(id, event, showMsg = true) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            try {
+                await api.markAsRead(id);
+                
+                // Actualizar localmente
+                const notif = allNotifications.find(n => n.id === id);
+                if (notif) {
+                    notif.read = true;
+                }
+
+                updateCounts();
+                updateBadge();
+                filterNotifications(currentFilter);
+
+                if (showMsg) {
+                    showNotification('Notificación marcada como leída', 'success');
+                }
+
+            } catch (error) {
+                console.error('Error al marcar como leída:', error);
+                if (showMsg) {
+                    showNotification('Error al actualizar notificación', 'error');
+                }
+            }
+        };
+
+        // Marcar todas como leídas
+        window.markAllAsRead = async function() {
+            try {
+                await api.markAllAsRead();
+                
+                // Actualizar localmente
+                allNotifications.forEach(n => n.read = true);
+
+                updateCounts();
+                updateBadge();
+                filterNotifications(currentFilter);
+
+                showNotification('Todas las notificaciones marcadas como leídas', 'success');
+
+            } catch (error) {
+                console.error('Error al marcar todas como leídas:', error);
+                showNotification('Error al actualizar notificaciones', 'error');
+            }
+        };
+
+        // Eliminar notificación
+        window.deleteNotification = async function(id, event) {
+            event.stopPropagation();
+
+            if (!confirm('¿Estás seguro de que deseas eliminar esta notificación?')) {
+                return;
+            }
+
+            try {
+                // En producción, aquí se llamaría a la API
+                // await api.deleteNotification(id);
+                
+                // Actualizar localmente
+                allNotifications = allNotifications.filter(n => n.id !== id);
+
+                updateCounts();
+                updateBadge();
+                filterNotifications(currentFilter);
+
+                showNotification('Notificación eliminada', 'success');
+
+            } catch (error) {
+                console.error('Error al eliminar notificación:', error);
+                showNotification('Error al eliminar notificación', 'error');
+            }
+        };
+
+        // Cargar notificaciones al inicio
+        loadNotifications();
+
+        // Actualizar notificaciones cada 30 segundos
+        setInterval(loadNotifications, 30000);
+    </script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: var(--spacing-md);
+        }
+
+        /* Filtros de notificaciones */
+        .notification-filters {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: var(--font-size-sm);
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .filter-count {
+            background: rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: var(--font-size-xs);
+            font-weight: bold;
+        }
+
+        .filter-btn.active .filter-count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Notificaciones */
+        .notifications-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+        }
+
+        .notification-item {
+            display: flex;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            transition: var(--transition-fast);
+        }
+
+        .notification-item:hover {
+            box-shadow: var(--shadow-sm);
+            border-color: var(--primary-light);
+        }
+
+        .notification-unread {
+            background: #f0f7ff;
+            border-left: 4px solid var(--primary);
+        }
+
+        .notification-read {
+            background: white;
+            opacity: 0.8;
+        }
+
+        .notification-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .notification-icon.request {
+            background: #e3f2fd;
+        }
+
+        .notification-icon.reservation {
+            background: #f3e5f5;
+        }
+
+        .notification-icon.system {
+            background: #e8f5e9;
+        }
+
+        .notification-icon.reminder {
+            background: #fff3e0;
+        }
+
+        .notification-icon.alert {
+            background: #ffebee;
+        }
+
+        .notification-content {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .notification-header h4 {
+            margin: 0;
+            font-size: var(--font-size-md);
+            color: var(--text-primary);
+        }
+
+        .notification-time {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .notification-message {
+            margin: 0;
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .notification-link {
+            display: inline-block;
+            margin-top: var(--spacing-xs);
+            color: var(--primary);
+            font-size: var(--font-size-sm);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .notification-link:hover {
+            text-decoration: underline;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+            align-items: flex-start;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
+        }
+
+        .btn-icon:hover {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-icon.btn-delete:hover {
+            background: var(--error);
+            border-color: var(--error);
+        }
+
+        /* Modal de detalles */
+        .notification-details {
+            text-align: center;
+        }
+
+        .detail-icon {
+            font-size: 4rem;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .detail-icon.request {
+            background: #e3f2fd;
+        }
+
+        .detail-icon.reservation {
+            background: #f3e5f5;
+        }
+
+        .detail-icon.system {
+            background: #e8f5e9;
+        }
+
+        .detail-content {
+            text-align: left;
+        }
+
+        .py-xl {
+            padding-top: var(--spacing-xl);
+            padding-bottom: var(--spacing-xl);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+
+            .notification-filters {
+                flex-direction: column;
+            }
+
+            .filter-btn {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .notification-item {
+                flex-direction: column;
+            }
+
+            .notification-actions {
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</body>
+</html>

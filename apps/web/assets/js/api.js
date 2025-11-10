@@ -179,6 +179,11 @@ class MockAPI {
         return { success: true };
     }
 
+    async deleteNotification(id) {
+        await simulateNetworkDelay();
+        return { success: true, id };
+    }
+
     async getInventory() {
         await simulateNetworkDelay();
         return this.loadMockData('resources');
@@ -309,6 +314,13 @@ class RealAPI {
     async markAllAsRead() {
         return this.request(API_CONFIG.ENDPOINTS.MARK_ALL_READ, {
             method: 'POST'
+        });
+    }
+
+    async deleteNotification(id) {
+        const endpoint = API_CONFIG.ENDPOINTS.DELETE_NOTIFICATION.replace(':id', id);
+        return this.request(endpoint, {
+            method: 'DELETE'
         });
     }
 
