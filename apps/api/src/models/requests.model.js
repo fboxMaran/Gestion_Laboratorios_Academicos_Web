@@ -5,7 +5,7 @@ const { pool } = require('../db/pool');
 async function validatePolicies(lab_id, { headcount = 1 }) {
   // Si no hay políticas, se considera OK
   const pol = (await pool.query(`SELECT capacity_max, academic_requirements, safety_requirements
-                                 FROM lab_policies WHERE lab_id = $1`, [lab_id])).rows[0] || null;
+                                 FROM lab_policy WHERE lab_id = $1`, [lab_id])).rows[0] || null;
 
   let ok = true;
   let reasons = [];
@@ -77,7 +77,7 @@ const RequestsModel = {
       await client.query('BEGIN');
 
       const { rows: reqRows } = await client.query(
-        `INSERT INTO requests
+        `INSERT INTO request
          (lab_id, requester_name, requester_email, requester_role, requester_program,
           purpose, priority, requested_from, requested_to, requirements_ok)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
@@ -92,7 +92,7 @@ const RequestsModel = {
       // Insertar ítems
       for (const it of items) {
         await client.query(
-          `INSERT INTO request_items (request_id, resource_id, qty)
+          `INSERT INTO request_item (request_id, resource_id, qty)
            VALUES ($1,$2,$3)`,
           [request.id, it.resource_id || null, it.qty || 1]
         );
@@ -126,10 +126,10 @@ const RequestsModel = {
       args.push(requirements_ok); cond.push(`r.requirements_ok = $${args.length}`);
     }
 
-    // Filtro por tipo de recurso (join a items -> resources -> resource_types)
+    // Filtro por tipo de recurso (join a items -> resource -> resource_types)
     const joinType = type_id
-      ? `JOIN request_items ri ON ri.request_id = r.id
-         JOIN resources res ON res.id = ri.resource_id
+      ? `JOIN request_item ri ON ri.request_id = r.id
+         JOIN resource res ON res.id = ri.resource_id
          WHERE res.type_id = ${Number(type_id)}`
       : '';
 
@@ -139,8 +139,18 @@ const RequestsModel = {
 
     const { rows } = await pool.query(
       `
-      SELECT r.*
-      FROM requests r
+      SELECT r.*, 
+             l.name as lab_name,
+             u.full_name as requester_name,
+             r.created_at as date_from,
+             (SELECT res.name 
+              FROM request_item ri 
+              LEFT JOIN resource res ON res.id = ri.resource_id 
+              WHERE ri.request_id = r.id 
+              LIMIT 1) as resource_name
+      FROM request r
+      LEFT JOIN lab l ON l.id = r.lab_id
+      LEFT JOIN app_user u ON u.id = r.requester_id
       ${joinType}
       ${where}
       ORDER BY r.created_at DESC
@@ -151,24 +161,37 @@ const RequestsModel = {
   },
 
   async get(id) {
-    const req = (await pool.query(`SELECT * FROM requests WHERE id = $1`, [id])).rows[0] || null;
+    const req = (await pool.query(`SELECT * FROM request WHERE id = $1`, [id])).rows[0] || null;
     if (!req) return null;
+    
+    // Obtener información del laboratorio
+    const labInfo = (await pool.query(
+      `SELECT name FROM lab WHERE id = $1`, [req.lab_id]
+    )).rows[0];
+    
     const items = (await pool.query(
-      `SELECT ri.*, res.name AS resource_name, res.type_id
-       FROM request_items ri
-       LEFT JOIN resources res ON res.id = ri.resource_id
+      `SELECT ri.*, res.name AS resource_name, res.type
+       FROM request_item ri
+       LEFT JOIN resource res ON res.id = ri.resource_id
        WHERE ri.request_id = $1
        ORDER BY ri.id ASC`, [id]
     )).rows;
+    
+    // Obtener mensajes a través de message_thread
     const msgs = (await pool.query(
-      `SELECT * FROM request_messages WHERE request_id = $1 ORDER BY created_at ASC`, [id]
+      `SELECT m.* 
+       FROM message m
+       JOIN message_thread mt ON mt.id = m.thread_id
+       WHERE mt.request_id = $1 
+       ORDER BY m.created_at ASC`, [id]
     )).rows;
-    return { ...req, items, messages: msgs };
+    
+    return { ...req, items, messages: msgs, lab_name: labInfo?.name || null };
   },
 
   async _setStatus(id, { status, reviewer_id = null, reviewer_note = null }) {
     const { rows } = await pool.query(
-      `UPDATE requests
+      `UPDATE request
        SET status = $2, reviewer_id = $3, reviewer_note = $4, updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -267,7 +290,7 @@ const RequestsModel = {
 
     if (message) {
       await pool.query(
-        `INSERT INTO request_messages (request_id, sender, message)
+        `INSERT INTO message (request_id, sender, message)
          VALUES ($1,'ENCARGADO',$2)`,
         [id, message]
       );
@@ -281,14 +304,55 @@ const RequestsModel = {
   },
 
   async addMessage(id, { sender, message }) {
-    const req = (await pool.query(`SELECT id FROM requests WHERE id = $1`, [id])).rows[0] || null;
+    const req = (await pool.query(`SELECT id FROM request WHERE id = $1`, [id])).rows[0] || null;
     if (!req) return null;
     const { rows } = await pool.query(
-      `INSERT INTO request_messages (request_id, sender, message)
+      `INSERT INTO message (request_id, sender, message)
        VALUES ($1,$2,$3) RETURNING *`,
       [id, sender, message]
     );
     return rows[0];
+  },
+
+  async cancel(id) {
+    const req = await this.get(id);
+    if (!req) return null;
+
+    // Solo se pueden cancelar solicitudes PENDIENTE o EN_REVISION
+    if (!['PENDIENTE', 'EN_REVISION', 'NECESITA_INFO'].includes(req.status)) {
+      const e = new Error('Solo se pueden cancelar solicitudes pendientes');
+      e.status = 400;
+      throw e;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Actualizar el estado de la solicitud
+      const { rows } = await client.query(
+        `UPDATE request
+         SET status = 'CANCELADA', updated_at = NOW()
+         WHERE id = $1
+         RETURNING *`,
+        [id]
+      );
+
+      // Registrar en el historial
+      await client.query(
+        `INSERT INTO lab_history (lab_id, user_id, action, detail)
+         VALUES ($1,$2,$3,$4)`,
+        [req.lab_id, req.requester_id, 'REQUEST_CANCEL', JSON.stringify({ request_id: id })]
+      );
+
+      await client.query('COMMIT');
+      return rows[0];
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 };
 

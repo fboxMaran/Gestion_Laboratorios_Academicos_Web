@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
@@ -8,7 +9,9 @@ if (!connectionString) {
 
 const pool = new Pool({
   connectionString,
-  ssl: false
+  ssl: false,
+  // Asegurar que siempre use UTF-8
+  client_encoding: 'UTF8'
 });
 
 pool.on('error', (err) => {

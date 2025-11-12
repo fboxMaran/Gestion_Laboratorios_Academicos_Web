@@ -45,7 +45,7 @@ function handlePgError(res, e) {
  */
 async function assertDepartmentExists(department_id) {
   if (!department_id) return false;
-  const { rows } = await pool.query(`SELECT 1 FROM departments WHERE id = $1`, [department_id]);
+  const { rows } = await pool.query(`SELECT 1 FROM school_department WHERE id = $1`, [department_id]);
   return rows.length > 0;
 }
 

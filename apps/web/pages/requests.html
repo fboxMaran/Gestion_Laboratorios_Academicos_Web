@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -186,6 +185,24 @@
         </div>
     </div>
 
+    <!-- Modal: Confirmación de Cancelación -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>⚠️ Confirmar Cancelación</h2>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 1.1em; margin-bottom: 20px;">¿Estás seguro de que deseas cancelar esta solicitud?</p>
+                <p style="color: var(--text-secondary); font-size: 0.95em;">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeConfirmModal()">No, volver</button>
+                <button class="btn btn-error" onclick="confirmCancelRequest()">Sí, cancelar solicitud</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import api from '../assets/js/api.js';
         import { formatDate, showNotification, validateForm } from '../assets/js/utils.js';
@@ -200,24 +217,28 @@
         // Variables globales
         let allRequests = [];
 
-        // Cargar usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.name || 'Usuario';
+            } catch (error) {
+                console.error('[Requests] Error al cargar perfil:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
         }
 
         // Cargar datos iniciales
         async function loadInitialData() {
+            await loadUserInfo();
             try {
                 // Cargar solicitudes
                 allRequests = await api.getRequests();
                 renderRequests(allRequests);
                 updateStats(allRequests);
-
-                // Cargar notificaciones
-                const notifications = await api.getNotifications();
-                const unread = notifications.filter(n => !n.read).length;
-                document.getElementById('notificationCount').textContent = unread;
 
             } catch (error) {
                 console.error('Error al cargar datos:', error);
@@ -227,9 +248,9 @@
 
         // Actualizar estadísticas
         function updateStats(requests) {
-            const pending = requests.filter(r => r.status === 'pending').length;
-            const approved = requests.filter(r => r.status === 'approved').length;
-            const rejected = requests.filter(r => r.status === 'rejected').length;
+            const pending = requests.filter(r => r.status.toUpperCase() === 'PENDIENTE').length;
+            const approved = requests.filter(r => r.status.toUpperCase() === 'APROBADA').length;
+            const rejected = requests.filter(r => r.status.toUpperCase() === 'RECHAZADA').length;
             
             document.getElementById('pendingCount').textContent = pending;
             document.getElementById('approvedCount').textContent = approved;
@@ -316,71 +337,114 @@
         };
 
         // Ver detalles
-        window.viewDetails = function(id) {
-            const request = allRequests.find(r => r.id === id);
-            if (!request) return;
-
+        window.viewDetails = async function(id) {
             const content = document.getElementById('detailsContent');
-            content.innerHTML = `
-                <div class="details-grid">
-                    <div class="detail-item">
-                        <strong>ID:</strong>
-                        <span>#${request.id}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Estado:</strong>
-                        <span class="badge badge-${request.status}">${getStatusText(request.status)}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Recurso:</strong>
-                        <span>${request.resource_name}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Laboratorio:</strong>
-                        <span>${request.lab_name}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Fecha Inicio:</strong>
-                        <span>${formatDate(request.date_from, 'DD/MM/YYYY HH:mm')}</span>
-                    </div>
-                    <div class="detail-item">
-                        <strong>Fecha Fin:</strong>
-                        <span>${formatDate(request.date_to, 'DD/MM/YYYY HH:mm')}</span>
-                    </div>
-                    <div class="detail-item full-width">
-                        <strong>Propósito:</strong>
-                        <p>${request.purpose || 'N/A'}</p>
-                    </div>
-                    ${request.notes ? `
-                        <div class="detail-item full-width">
-                            <strong>Notas:</strong>
-                            <p>${request.notes}</p>
-                        </div>
-                    ` : ''}
-                    ${request.admin_notes ? `
-                        <div class="detail-item full-width">
-                            <strong>Notas del administrador:</strong>
-                            <p>${request.admin_notes}</p>
-                        </div>
-                    ` : ''}
-                    <div class="detail-item">
-                        <strong>Creada:</strong>
-                        <span>${formatDate(request.created_at, 'DD/MM/YYYY HH:mm')}</span>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-outline" onclick="closeDetailsModal()">Cerrar</button>
-                    ${request.status === 'pending' ? 
-                        `<button class="btn btn-error" onclick="closeDetailsModal(); cancelRequest(${request.id})">Cancelar Solicitud</button>` 
-                        : ''}
-                </div>
-            `;
-
+            content.innerHTML = '<p class="text-center text-secondary">Cargando detalles...</p>';
+            
+            // Abrir modal
             document.getElementById('detailsModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+
+            try {
+                // Obtener detalles completos del backend
+                const response = await fetch(`http://localhost:3000/api/requests/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar detalles');
+                }
+
+                const request = await response.json();
+                
+                // Mapear status a español
+                const statusMap = {
+                    'PENDIENTE': 'pending',
+                    'APROBADA': 'approved',
+                    'RECHAZADA': 'rejected',
+                    'CANCELADA': 'cancelled',
+                    'EN_REVISION': 'pending',
+                    'NECESITA_INFO': 'pending'
+                };
+
+                const statusClass = statusMap[request.status] || 'pending';
+
+                content.innerHTML = `
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <strong>ID:</strong>
+                            <span>#${request.id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Estado:</strong>
+                            <span class="badge badge-${statusClass}">${request.status}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Laboratorio:</strong>
+                            <span>${request.lab_name || 'Lab ID: ' + request.lab_id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Fecha de Solicitud:</strong>
+                            <span>${formatDate(request.created_at, 'DD/MM/YYYY HH:mm')}</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <strong>Objetivo:</strong>
+                            <p>${request.objective || 'N/A'}</p>
+                        </div>
+                        <div class="detail-item full-width">
+                            <strong>Rol del Solicitante:</strong>
+                            <span>${request.role_snapshot}</span>
+                        </div>
+                        ${request.items && request.items.length > 0 ? `
+                            <div class="detail-item full-width">
+                                <strong>Recursos Solicitados:</strong>
+                                <ul style="margin-top: 8px;">
+                                    ${request.items.map(item => `
+                                        <li>
+                                            ${item.resource_name || 'Recurso ID: ' + item.resource_id} 
+                                            ${item.type ? `(${item.type})` : ''}
+                                            - Cantidad: ${item.qty}
+                                            ${item.use_start ? `<br><small>Uso: ${formatDate(item.use_start, 'DD/MM/YYYY HH:mm')} - ${formatDate(item.use_end, 'DD/MM/YYYY HH:mm')}</small>` : ''}
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${request.requirements_ok !== undefined ? `
+                            <div class="detail-item">
+                                <strong>Requisitos Cumplidos:</strong>
+                                <span class="badge badge-${request.requirements_ok ? 'approved' : 'rejected'}">
+                                    ${request.requirements_ok ? 'Sí' : 'No'}
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer" style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="btn btn-outline" onclick="closeDetailsModal()">Cerrar</button>
+                        ${request.status === 'PENDIENTE' ? 
+                            `<button class="btn btn-error" onclick="cancelRequest(${request.id})">Cancelar Solicitud</button>` 
+                            : ''}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error al cargar detalles:', error);
+                content.innerHTML = `
+                    <div class="alert alert-error">
+                        <p>Error al cargar los detalles de la solicitud</p>
+                    </div>
+                    <div class="modal-footer" style="margin-top: 20px;">
+                        <button class="btn btn-outline" onclick="closeDetailsModal()">Cerrar</button>
+                    </div>
+                `;
+            }
         };
 
         window.closeDetailsModal = function() {
             document.getElementById('detailsModal').classList.remove('show');
+            document.body.style.overflow = '';
         };
 
         // Cerrar modal al hacer clic en el overlay
@@ -390,24 +454,51 @@
             }
         });
 
-        // Cancelar solicitud
-        window.cancelRequest = async function(id) {
-            if (!confirm('¿Estás seguro de que deseas cancelar esta solicitud?')) {
-                return;
-            }
+        // Variable para almacenar el ID de la solicitud a cancelar
+        let requestToCancel = null;
+
+        // Cancelar solicitud - Mostrar modal de confirmación
+        window.cancelRequest = function(id) {
+            requestToCancel = id;
+            document.getElementById('confirmModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        };
+
+        // Cerrar modal de confirmación
+        window.closeConfirmModal = function() {
+            document.getElementById('confirmModal').classList.remove('show');
+            document.body.style.overflow = '';
+            requestToCancel = null;
+        };
+
+        // Confirmar cancelación de solicitud
+        window.confirmCancelRequest = async function() {
+            if (!requestToCancel) return;
+
+            const id = requestToCancel;
+            closeConfirmModal();
 
             try {
-                await api.cancelRequest(id);
-                showNotification('Solicitud cancelada', 'success');
+                const result = await api.cancelRequest(id);
+                console.log('Solicitud cancelada:', result);
+                closeDetailsModal();
+                showNotification('✅ Solicitud cancelada exitosamente', 'success');
                 // Recargar solicitudes
                 allRequests = await api.getRequests();
                 renderRequests(allRequests);
                 updateStats(allRequests);
             } catch (error) {
                 console.error('Error al cancelar solicitud:', error);
-                showNotification('Error al cancelar la solicitud', 'error');
+                showNotification('❌ Error al cancelar la solicitud', 'error');
             }
         };
+
+        // Cerrar modal de confirmación al hacer clic fuera
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeConfirmModal();
+            }
+        });
 
         // Cargar datos al inicio
         loadInitialData();
@@ -617,6 +708,37 @@
             .modal-header h2 {
                 font-size: 18px;
             }
+        }
+
+        /* Estilos específicos para modal de confirmación */
+        #confirmModal .modal {
+            border: 2px solid var(--error);
+            box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+        }
+
+        #confirmModal .modal-header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border-bottom: none;
+        }
+
+        #confirmModal .modal-header h2 {
+            color: white;
+        }
+
+        #confirmModal .modal-close {
+            color: white;
+            opacity: 0.9;
+        }
+
+        #confirmModal .modal-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #confirmModal .modal-body p:first-child {
+            font-weight: 500;
+            color: var(--text-primary);
         }
     </style>
 </body>

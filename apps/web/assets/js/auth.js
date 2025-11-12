@@ -32,15 +32,20 @@ export const isAuthenticated = () => {
  * Cierra la sesión
  */
 export const logout = async () => {
+    // Primero limpiamos el localStorage inmediatamente
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    
+    // Intentamos notificar al servidor (pero no bloqueamos si falla)
     try {
         await api.logout();
     } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-    } finally {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-        window.location.href = '/index.html';
+        console.error('Error al notificar logout al servidor:', error);
+        // Ignoramos el error - la sesión local ya está cerrada
     }
+    
+    // Redirigimos al login (ruta relativa desde /pages/)
+    window.location.href = '../index.html';
 };
 
 /**
@@ -48,7 +53,7 @@ export const logout = async () => {
  */
 export const requireAuth = () => {
     if (!isAuthenticated()) {
-        window.location.href = '/index.html';
+        window.location.href = '../index.html';
         return false;
     }
     return true;
@@ -81,14 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Llamar al API
                 const response = await api.login(credentials);
                 
+                // Asegurar que tenemos el nombre completo
+                if (!response.user.name && response.user.full_name) {
+                    response.user.name = response.user.full_name;
+                }
+                
                 // Guardar sesión
                 saveSession(response.token, response.user);
                 
-                // Redirigir al dashboard
                 // Redirigir al dashboard según rol
-                if (response.user.role === 'technician') {
+                if (response.user.role === 'EncargadoTecnico' || response.user.role === 'technician') {
                     window.location.href = './pages/search-tech.html';
+                } else if (response.user.role === 'Admin') {
+                    // Redirigir a la página de admin (si existe)
+                    // Por ahora va al dashboard normal
+                    window.location.href = './pages/dashboard.html';
                 } else {
+                    // Estudiante, Docente y otros roles
                     window.location.href = './pages/dashboard.html';
                 }
 

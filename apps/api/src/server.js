@@ -37,12 +37,14 @@ async function ensureSchema() {
 async function main() {
   try {
     const { rows } = await pool.query('SELECT NOW() now');
-    console.log('[DB] connected at', rows[0].now);
+    console.log('[DB] ✅ Conectado a PostgreSQL en', rows[0].now);
 
-    await ensureSchema();
+    // Schema ya fue aplicado manualmente con setup_completo.sql
+    // await ensureSchema();
+    console.log('[DB] Schema cargado previamente desde setup_completo.sql');
 
     app.listen(PORT, () => {
-      console.log(`[API] listening on port ${PORT}`);
+      console.log(`[API] 🚀 Servidor corriendo en http://localhost:${PORT}`);
     });
   } catch (err) {
     console.error('[BOOT ERROR]', err);

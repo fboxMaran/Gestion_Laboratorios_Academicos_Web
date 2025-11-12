@@ -13,7 +13,7 @@ const ReportsModel = {
         COUNT(a.id)    AS assignments_count,
         COALESCE(SUM(a.qty),0) AS qty_assigned
       FROM resource_assignments a
-      JOIN resources r ON r.id = a.resource_id
+      JOIN resource r ON r.id = a.resource_id
       WHERE a.lab_id = $1
         AND a.assigned_at >= $2
         AND a.assigned_at <= $3
@@ -32,7 +32,7 @@ const ReportsModel = {
         COUNT(a.id)    AS assignments_count,
         COALESCE(SUM(a.qty),0) AS qty_assigned
       FROM resource_assignments a
-      LEFT JOIN requests req ON req.id = a.request_id
+      LEFT JOIN request req ON req.id = a.request_id
       WHERE a.lab_id = $1
         AND a.assigned_at >= $2
         AND a.assigned_at <= $3
@@ -54,7 +54,7 @@ const ReportsModel = {
     // Conteo por estado de recursos
     const resStatus = await pool.query(
       `SELECT status, COUNT(*) AS count
-       FROM resources
+       FROM resource
        WHERE lab_id = $1
        GROUP BY status
        ORDER BY status ASC`,

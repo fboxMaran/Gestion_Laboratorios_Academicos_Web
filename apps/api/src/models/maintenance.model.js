@@ -9,7 +9,7 @@ async function notifyIfDisponible({ lab_id, resource_id, title }) {
   if (!resource_id) return;
   try {
     await pool.query(
-      `INSERT INTO notifications (user_id, title, body, meta)
+      `INSERT INTO notification (user_id, title, body, meta)
        VALUES ($1,$2,$3,$4)`,
       [
         0, // user_id 0 => bandeja global / por implementar
@@ -132,9 +132,9 @@ const MaintenanceModel = {
       const newStatus = result_status || mo.result_status;
       if (newStatus) {
         if (mo.resource_id) {
-          await client.query(`UPDATE resources SET status = $2, updated_at = NOW() WHERE id = $1`, [mo.resource_id, newStatus]);
+          await client.query(`UPDATE resource SET status = $2, updated_at = NOW() WHERE id = $1`, [mo.resource_id, newStatus]);
         } else if (mo.fixed_id) {
-          await client.query(`UPDATE resources_fixed SET status = $2 WHERE id = $1`, [mo.fixed_id, newStatus]);
+          await client.query(`UPDATE resource_fixed SET status = $2 WHERE id = $1`, [mo.fixed_id, newStatus]);
         }
       }
 

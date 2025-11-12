@@ -3,29 +3,62 @@ const { pool } = require('../db/pool');
 const UsersModel = {
   async getById(id) {
     const { rows } = await pool.query(
-      `SELECT id, role, email, full_name, student_id, teacher_code, program_department, phone, is_active, created_at, updated_at
-       FROM users WHERE id = $1`, [id]
+      `SELECT 
+        u.id, 
+        r.name as role, 
+        u.email, 
+        u.full_name as name, 
+        u.id_code as student_id,
+        u.career_or_dept as department, 
+        u.phone, 
+        u.is_active, 
+        u.created_at, 
+        u.updated_at
+       FROM app_user u
+       LEFT JOIN role r ON u.role_id = r.id
+       WHERE u.id = $1`, [id]
     );
     return rows[0] || null;
   },
 
   async updateProfile(id, payload) {
-    const fields = ['full_name','student_id','teacher_code','program_department','phone'];
-    const sets = []; const args = [];
-    fields.forEach((k) => {
-      if (Object.prototype.hasOwnProperty.call(payload, k)) {
+    console.log('[Users Model] updateProfile - ID:', id, 'Payload:', payload);
+    
+    // Mapeo de campos del frontend a la base de datos
+    const fieldMap = {
+      'name': 'full_name',
+      'phone': 'phone',
+      'department': 'career_or_dept'
+    };
+    
+    const sets = []; 
+    const args = [];
+    
+    Object.keys(payload).forEach((k) => {
+      const dbField = fieldMap[k];
+      if (dbField && Object.prototype.hasOwnProperty.call(payload, k)) {
         args.push(payload[k] ?? null);
-        sets.push(`${k} = $${args.length}`);
+        sets.push(`${dbField} = $${args.length}`);
       }
     });
-    if (!sets.length) return this.getById(id);
+    
+    if (!sets.length) {
+      console.log('[Users Model] No hay campos para actualizar, devolviendo perfil actual');
+      return this.getById(id);
+    }
 
     args.push(id);
+    console.log('[Users Model] Ejecutando UPDATE con:', { sets: sets.join(', '), args });
+    
     const { rows } = await pool.query(
-      `UPDATE users SET ${sets.join(', ')}, updated_at = NOW() WHERE id = $${args.length} RETURNING *`,
+      `UPDATE app_user SET ${sets.join(', ')}, updated_at = NOW() WHERE id = $${args.length} RETURNING *`,
       args
     );
-    return rows[0];
+    
+    console.log('[Users Model] Usuario actualizado:', rows[0]);
+    
+    // Devolver el perfil actualizado con los mismos campos que getById
+    return this.getById(id);
   },
 
   // Requisitos de capacitación por laboratorio (+ estado del usuario)
@@ -93,15 +126,13 @@ const UsersModel = {
     return rows;
   },
 
-  // “Actualización automática”: propaga datos denormalizados a requests si esas requests están ligadas al usuario
+  // "Actualización automática": propaga datos denormalizados a request si esas request están ligadas al usuario
   async propagateToRequests(user_id) {
     await pool.query(
-      `UPDATE requests r
-          SET requester_name  = u.full_name,
-              requester_email = u.email,
-              updated_at      = NOW()
-         FROM users u
-        WHERE r.user_id = u.id AND u.id = $1`,
+      `UPDATE request r
+          SET updated_at = NOW()
+         FROM app_user u
+        WHERE r.requester_id = u.id AND u.id = $1`,
       [user_id]
     );
   },

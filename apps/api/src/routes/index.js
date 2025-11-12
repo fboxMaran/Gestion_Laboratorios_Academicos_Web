@@ -27,6 +27,7 @@ const adminReports  = require('./admin_reports.routes');
 const auth          = require('./auth.routes');
 const users         = require('./users.routes');
 const browse        = require('./browse.routes');
+const notifications = require('./notifications.routes');
 
 // 👇 Adaptadores para /labs/:id/resources usando el controlador existente
 const ResourcesController = require('../controllers/resources.controller');
@@ -55,7 +56,7 @@ router.use('/admin',          admin);
 router.use('/admin/reports',  adminReports);
 
 // ---- Adaptadores REST para catálogo anidado por lab ----
-// GET /labs/:id/resources -> lista de resources filtrados por lab_id
+// GET /labs/:id/resources -> lista de resource filtrados por lab_id
 router.get('/labs/:id/resources', (req, res, next) => {
   req.query.lab_id = req.params.id;
   return ResourcesController.list(req, res, next);
@@ -73,6 +74,7 @@ router.use('/', availability);
 router.use('/', control);
 router.use('/', tech);
 router.use('/reports',        reports);
+router.use('/',               notifications);  // /notifications, /notifications/:id/seen, etc.
 
 // === MÓDULO 3 ===
 router.use('/auth',           auth);

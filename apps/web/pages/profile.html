@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -74,54 +73,32 @@
         <div class="container">
             <div class="page-header">
                 <div>
-                    <h1>👤 Mi Perfil</h1>
+                    <h1>👤 Mi Perfil - <span id="profileHeaderName">Cargando...</span></h1>
                     <p class="text-secondary">Gestiona tu información personal y revisa tu actividad</p>
                 </div>
             </div>
 
-            <!-- Perfil y Foto -->
-            <div class="grid grid-cols-3 mt-lg">
-                <!-- Tarjeta de Perfil con Foto -->
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="profile-photo-container">
-                            <img id="profilePhoto" src="../assets/images/default-avatar.png" alt="Foto de perfil" class="profile-photo">
-                            <button class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
-                                📷
-                            </button>
-                            <input type="file" id="photoInput" accept="image/*" style="display: none;" onchange="handlePhotoUpload(event)">
-                        </div>
-                        <h3 id="profileName" class="mt-md">Usuario</h3>
-                        <p class="text-secondary" id="profileRole">Estudiante</p>
-                        <p class="text-secondary text-sm" id="profileEmail">email@tec.ac.cr</p>
-                        <div class="mt-md">
-                            <span class="badge badge-primary">Activo</span>
-                        </div>
-                    </div>
+            <!-- Estadísticas Rápidas -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3>📊 Resumen de Actividad</h3>
                 </div>
-
-                <!-- Estadísticas Rápidas -->
-                <div class="card span-2">
-                    <div class="card-header">
-                        <h3>📊 Resumen de Actividad</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="grid grid-cols-3">
-                            <div class="stat-box">
-                                <div class="stat-icon">📋</div>
-                                <h4 class="stat-number" id="totalRequests">0</h4>
-                                <p class="text-secondary">Solicitudes</p>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-icon">📚</div>
-                                <h4 class="stat-number" id="totalReservations">0</h4>
-                                <p class="text-secondary">Reservas</p>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-icon">🎓</div>
-                                <h4 class="stat-number" id="totalTrainings">0</h4>
-                                <p class="text-secondary">Capacitaciones</p>
-                            </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-3">
+                        <div class="stat-box">
+                            <div class="stat-icon">📋</div>
+                            <h4 class="stat-number" id="totalRequests">0</h4>
+                            <p class="text-secondary">Solicitudes Totales</p>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">📚</div>
+                            <h4 class="stat-number" id="totalReservations">0</h4>
+                            <p class="text-secondary">Reservas Completadas</p>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🎓</div>
+                            <h4 class="stat-number" id="totalTrainings">0</h4>
+                            <p class="text-secondary">Capacitaciones</p>
                         </div>
                     </div>
                 </div>
@@ -222,39 +199,50 @@
         let originalData = {};
         let isEditMode = false;
 
-        // Cargar usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
-            loadProfile();
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                const userName = profile.name || 'Usuario';
+                
+                // Actualizar nombre en el navbar
+                document.getElementById('userName').textContent = userName;
+                
+                // Actualizar nombre en el header del perfil
+                document.getElementById('profileHeaderName').textContent = userName;
+                
+                return profile;
+            } catch (error) {
+                console.error('[Profile] Error al cargar información del usuario:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('profileHeaderName').textContent = user.name;
+                }
+                throw error;
+            }
         }
 
         // Cargar perfil
         async function loadProfile() {
             try {
-                // Cargar datos del perfil
-                const profile = await api.getProfile();
+                console.log('[Profile] Cargando perfil del usuario...');
                 
-                // Actualizar foto de perfil
-                if (profile.photo) {
-                    document.getElementById('profilePhoto').src = profile.photo;
-                }
-
-                // Actualizar información en la tarjeta
-                document.getElementById('profileName').textContent = profile.name;
-                document.getElementById('profileRole').textContent = profile.role;
-                document.getElementById('profileEmail').textContent = profile.email;
+                // Cargar datos del perfil
+                const profile = await loadUserInfo();
+                console.log('[Profile] Perfil recibido:', profile);
 
                 // Llenar formulario
-                document.getElementById('fullName').value = profile.name;
-                document.getElementById('studentId').value = profile.student_id || profile.id;
-                document.getElementById('email').value = profile.email;
+                document.getElementById('fullName').value = profile.name || 'N/A';
+                document.getElementById('studentId').value = profile.student_id || profile.id || 'N/A';
+                document.getElementById('email').value = profile.email || 'N/A';
                 document.getElementById('phone').value = profile.phone || '';
                 document.getElementById('department').value = profile.department || '';
-                document.getElementById('role').value = profile.role;
+                document.getElementById('role').value = profile.role || 'N/A';
 
                 // Guardar datos originales
                 originalData = { ...profile };
+                console.log('[Profile] Datos originales guardados');
 
                 // Cargar estadísticas
                 await loadStatistics();
@@ -262,13 +250,8 @@
                 // Cargar actividad reciente
                 await loadRecentActivity();
 
-                // Cargar notificaciones
-                const notifications = await api.getNotifications();
-                const unread = notifications.filter(n => !n.read).length;
-                document.getElementById('notificationCount').textContent = unread;
-
             } catch (error) {
-                console.error('Error al cargar perfil:', error);
+                console.error('[Profile] Error al cargar perfil:', error);
                 showNotification('Error al cargar información del perfil', 'error');
             }
         }
@@ -394,58 +377,38 @@
             e.preventDefault();
 
             try {
+                console.log('[Profile] Guardando cambios...');
+                
                 const updatedData = {
-                    name: document.getElementById('fullName').value,
-                    phone: document.getElementById('phone').value,
+                    name: document.getElementById('fullName').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
                     department: document.getElementById('department').value
                 };
 
-                await api.updateProfile(updatedData);
+                console.log('[Profile] Datos a enviar:', updatedData);
+
+                const result = await api.updateProfile(updatedData);
+                console.log('[Profile] Respuesta del servidor:', result);
                 
                 // Actualizar datos originales
                 originalData = { ...originalData, ...updatedData };
                 
-                // Actualizar nombre en la tarjeta y navbar
-                document.getElementById('profileName').textContent = updatedData.name;
+                // Actualizar nombre en el header y navbar
+                document.getElementById('profileHeaderName').textContent = updatedData.name;
                 document.getElementById('userName').textContent = updatedData.name;
 
                 showNotification('Perfil actualizado exitosamente', 'success');
                 toggleEditMode();
 
             } catch (error) {
-                console.error('Error al actualizar perfil:', error);
-                showNotification('Error al actualizar el perfil', 'error');
+                console.error('[Profile] Error al actualizar perfil:', error);
+                showNotification('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'), 'error');
             }
         });
 
-        // Subir foto de perfil
-        window.handlePhotoUpload = function(event) {
-            const file = event.target.files[0];
-            
-            if (!file) return;
+        // Cargar perfil al iniciar la página
+        loadProfile();
 
-            // Validar tipo de archivo
-            if (!file.type.startsWith('image/')) {
-                showNotification('Por favor selecciona una imagen válida', 'error');
-                return;
-            }
-
-            // Validar tamaño (máximo 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showNotification('La imagen no debe superar los 5MB', 'error');
-                return;
-            }
-
-            // Leer y mostrar la imagen
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('profilePhoto').src = e.target.result;
-                
-                // Aquí en producción se subiría al servidor
-                showNotification('Foto de perfil actualizada', 'success');
-            };
-            reader.readAsDataURL(file);
-        };
     </script>
 
     <style>
@@ -553,44 +516,6 @@
             margin-bottom: var(--spacing-lg);
         }
 
-        .profile-photo-container {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 0 auto;
-        }
-
-        .profile-photo {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid var(--primary);
-        }
-
-        .photo-upload-btn {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: white;
-            border: 3px solid white;
-            cursor: pointer;
-            font-size: var(--font-size-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition-fast);
-        }
-
-        .photo-upload-btn:hover {
-            background: var(--primary-dark);
-            transform: scale(1.1);
-        }
-
         .stat-box {
             text-align: center;
             padding: var(--spacing-md);
@@ -644,11 +569,6 @@
 
             .span-2 {
                 grid-column: span 1;
-            }
-
-            .profile-photo-container {
-                width: 120px;
-                height: 120px;
             }
         }
     </style>

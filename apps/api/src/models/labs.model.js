@@ -5,7 +5,7 @@ const LabsModel = {
   // LABS
   async createLab(data) {
     const { department_id, code, name, location, description } = data;
-    const q = `INSERT INTO labs (department_id, code, name, location, description)
+    const q = `INSERT INTO lab (department_id, code, name, location, description)
                VALUES ($1,$2,$3,$4,$5)
                RETURNING *`;
     const { rows } = await pool.query(q, [department_id, code, name, location, description || null]);
@@ -14,8 +14,8 @@ const LabsModel = {
 
   async listLabs() {
     const q = `SELECT l.*, d.name AS department_name
-               FROM labs l
-               JOIN departments d ON d.id = l.department_id
+               FROM lab l
+               JOIN school_department d ON d.id = l.department_id
                ORDER BY l.name ASC`;
     const { rows } = await pool.query(q);
     return rows;
@@ -23,8 +23,8 @@ const LabsModel = {
 
   async getLab(id) {
     const q = `SELECT l.*, d.name AS department_name
-               FROM labs l
-               JOIN departments d ON d.id = l.department_id
+               FROM lab l
+               JOIN school_department d ON d.id = l.department_id
                WHERE l.id = $1`;
     const { rows } = await pool.query(q, [id]);
     return rows[0] || null;
@@ -32,7 +32,7 @@ const LabsModel = {
 
   async updateLab(id, data) {
     const { code, name, location, description, department_id } = data;
-    const q = `UPDATE labs
+    const q = `UPDATE lab
                SET code = COALESCE($2, code),
                    name = COALESCE($3, name),
                    location = COALESCE($4, location),
@@ -46,26 +46,26 @@ const LabsModel = {
   },
 
   async deleteLab(id) {
-    await pool.query(`DELETE FROM labs WHERE id = $1`, [id]);
+    await pool.query(`DELETE FROM lab WHERE id = $1`, [id]);
     return true;
   },
 
   // CONTACTS
   async addContact(lab_id, { name, role, phone, email }) {
-    const q = `INSERT INTO lab_contacts (lab_id, name, role, phone, email)
+    const q = `INSERT INTO lab_responsible (lab_id, name, role, phone, email)
                VALUES ($1,$2,$3,$4,$5) RETURNING *`;
     const { rows } = await pool.query(q, [lab_id, name, role, phone || null, email]);
     return rows[0];
   },
 
   async listContacts(lab_id) {
-    const { rows } = await pool.query(`SELECT * FROM lab_contacts WHERE lab_id = $1 ORDER BY created_at DESC`, [lab_id]);
+    const { rows } = await pool.query(`SELECT * FROM lab_responsible WHERE lab_id = $1 ORDER BY created_at DESC`, [lab_id]);
     return rows;
   },
 
   async upsertPolicies(lab_id, { academic_requirements, safety_requirements, capacity_max }) {
     const q = `
-      INSERT INTO lab_policies (lab_id, academic_requirements, safety_requirements, capacity_max)
+      INSERT INTO lab_policy (lab_id, academic_requirements, safety_requirements, capacity_max)
       VALUES ($1,$2,$3,$4)
       ON CONFLICT (lab_id) DO UPDATE
       SET academic_requirements = EXCLUDED.academic_requirements,
@@ -78,7 +78,7 @@ const LabsModel = {
   },
 
   async getPolicies(lab_id) {
-    const { rows } = await pool.query(`SELECT * FROM lab_policies WHERE lab_id = $1`, [lab_id]);
+    const { rows } = await pool.query(`SELECT * FROM lab_policy WHERE lab_id = $1`, [lab_id]);
     return rows[0] || null;
   },
 
@@ -88,7 +88,7 @@ const LabsModel = {
       await client.query('BEGIN');
       for (const h of hoursArray) {
         await client.query(`
-          INSERT INTO lab_hours (lab_id, day_of_week, opens, closes)
+          INSERT INTO lab_open_hours (lab_id, day_of_week, opens, closes)
           VALUES ($1,$2,$3,$4)
           ON CONFLICT (lab_id, day_of_week) DO UPDATE
           SET opens = EXCLUDED.opens, closes = EXCLUDED.closes
@@ -101,24 +101,24 @@ const LabsModel = {
     } finally {
       client.release();
     }
-    const { rows } = await pool.query(`SELECT * FROM lab_hours WHERE lab_id = $1 ORDER BY day_of_week ASC`, [lab_id]);
+    const { rows } = await pool.query(`SELECT * FROM lab_open_hours WHERE lab_id = $1 ORDER BY day_of_week ASC`, [lab_id]);
     return rows;
   },
 
   async getHours(lab_id) {
-    const { rows } = await pool.query(`SELECT * FROM lab_hours WHERE lab_id = $1 ORDER BY day_of_week ASC`, [lab_id]);
+    const { rows } = await pool.query(`SELECT * FROM lab_open_hours WHERE lab_id = $1 ORDER BY day_of_week ASC`, [lab_id]);
     return rows;
   },
 
   async addFixedResource(lab_id, { name, inventory_code, status, last_maintenance_date }) {
-    const q = `INSERT INTO resources_fixed (lab_id, name, inventory_code, status, last_maintenance_date)
+    const q = `INSERT INTO resource (lab_id, name, inventory_code, status, last_maintenance_date)
                VALUES ($1,$2,$3,$4,$5) RETURNING *`;
     const { rows } = await pool.query(q, [lab_id, name, inventory_code, status || 'DISPONIBLE', last_maintenance_date || null]);
     return rows[0];
   },
 
   async listFixedResources(lab_id) {
-    const { rows } = await pool.query(`SELECT * FROM resources_fixed WHERE lab_id = $1 ORDER BY name ASC`, [lab_id]);
+    const { rows } = await pool.query(`SELECT * FROM resource WHERE lab_id = $1 ORDER BY name ASC`, [lab_id]);
     return rows;
   },
 

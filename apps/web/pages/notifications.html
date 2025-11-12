@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -136,6 +135,24 @@
         </div>
     </div>
 
+    <!-- Modal: Confirmación de Eliminación -->
+    <div id="confirmDeleteModal" class="modal-overlay">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>🗑️ Eliminar Notificación</h2>
+                <button class="modal-close" onclick="closeConfirmDelete()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-center">¿Estás seguro de que deseas eliminar esta notificación?</p>
+                <p class="text-center text-secondary text-sm">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeConfirmDelete()">Cancelar</button>
+                <button class="btn btn-danger" onclick="confirmDeleteAction()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import api from '../assets/js/api.js';
         import { formatDate, showNotification } from '../assets/js/utils.js';
@@ -151,10 +168,19 @@
         let allNotifications = [];
         let currentFilter = 'all';
 
-        // Cargar usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
+        // Cargar usuario desde la API
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.name || 'Usuario';
+            } catch (error) {
+                console.error('Error al cargar usuario:', error);
+                // Fallback al localStorage si falla la API
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
         }
 
         // Cargar notificaciones
@@ -167,7 +193,6 @@
                 
                 updateCounts();
                 renderNotifications(allNotifications);
-                updateBadge();
 
             } catch (error) {
                 console.error('Error al cargar notificaciones:', error);
@@ -187,12 +212,6 @@
             document.getElementById('countRequest').textContent = requests;
             document.getElementById('countReservation').textContent = reservations;
             document.getElementById('countSystem').textContent = system;
-        }
-
-        // Actualizar badge en navbar
-        function updateBadge() {
-            const unread = allNotifications.filter(n => !n.read).length;
-            document.getElementById('notificationCount').textContent = unread;
         }
 
         // Renderizar notificaciones
@@ -362,7 +381,6 @@
                 }
 
                 updateCounts();
-                updateBadge();
                 filterNotifications(currentFilter);
 
                 if (showMsg) {
@@ -386,7 +404,6 @@
                 allNotifications.forEach(n => n.read = true);
 
                 updateCounts();
-                updateBadge();
                 filterNotifications(currentFilter);
 
                 showNotification('Todas las notificaciones marcadas como leídas', 'success');
@@ -397,35 +414,56 @@
             }
         };
 
-        // Eliminar notificación
-        window.deleteNotification = async function(id, event) {
-            event.stopPropagation();
+        // Variable para almacenar el ID de la notificación a eliminar
+        let notificationToDelete = null;
 
-            if (!confirm('¿Estás seguro de que deseas eliminar esta notificación?')) {
-                return;
-            }
+        // Abrir modal de confirmación
+        window.deleteNotification = function(id, event) {
+            event.stopPropagation();
+            notificationToDelete = id;
+            document.getElementById('confirmDeleteModal').classList.add('show');
+        };
+
+        // Cerrar modal de confirmación
+        window.closeConfirmDelete = function() {
+            document.getElementById('confirmDeleteModal').classList.remove('show');
+            notificationToDelete = null;
+        };
+
+        // Confirmar eliminación
+        window.confirmDeleteAction = async function() {
+            if (!notificationToDelete) return;
 
             try {
-                // En producción, aquí se llamaría a la API
-                // await api.deleteNotification(id);
+                console.log('[Notifications] Eliminando notificación:', notificationToDelete);
+                await api.deleteNotification(notificationToDelete);
                 
                 // Actualizar localmente
-                allNotifications = allNotifications.filter(n => n.id !== id);
+                allNotifications = allNotifications.filter(n => n.id !== notificationToDelete);
 
                 updateCounts();
-                updateBadge();
                 filterNotifications(currentFilter);
 
-                showNotification('Notificación eliminada', 'success');
+                closeConfirmDelete();
+                showNotification('Notificación eliminada exitosamente', 'success');
 
             } catch (error) {
-                console.error('Error al eliminar notificación:', error);
+                console.error('[Notifications] Error al eliminar:', error);
+                closeConfirmDelete();
                 showNotification('Error al eliminar notificación', 'error');
             }
         };
 
-        // Cargar notificaciones al inicio
-        loadNotifications();
+        // Cerrar modal al hacer clic en el overlay
+        document.getElementById('confirmDeleteModal').addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeConfirmDelete();
+            }
+        });
+
+        // Cargar datos al inicio
+        loadUserInfo(); // Cargar nombre del usuario desde la API
+        loadNotifications(); // Cargar notificaciones
 
         // Actualizar notificaciones cada 30 segundos
         setInterval(loadNotifications, 30000);
@@ -758,6 +796,35 @@
         .py-xl {
             padding-top: var(--spacing-xl);
             padding-bottom: var(--spacing-xl);
+        }
+
+        /* Modal pequeño */
+        .modal-sm {
+            max-width: 400px;
+        }
+
+        /* Botón de peligro */
+        .btn-danger {
+            background: var(--error);
+            color: white;
+            border: 1px solid var(--error);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+            border-color: #c0392b;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-danger:active {
+            transform: translateY(0);
         }
 
         @media (max-width: 768px) {

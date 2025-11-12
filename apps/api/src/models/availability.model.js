@@ -15,7 +15,7 @@ async function enqueueNotifications({ lab_id, resource_id, title }) {
     await client.query('BEGIN');
     for (const s of subs) {
       await client.query(
-        `INSERT INTO notifications (user_id, title, body, meta)
+        `INSERT INTO notification (user_id, title, body, meta)
          VALUES ($1,$2,$3,$4)`,
         [s.user_id, 'Recurso disponible',
          title || 'Un recurso/espacio pasó a DISPONIBLE',

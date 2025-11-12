@@ -217,14 +217,32 @@ class RealAPI {
             }
         };
 
-        const response = await fetch(url, config);
-        const data = await response.json();
+        try {
+            console.log(`API Request: ${options.method || 'GET'} ${url}`);
+            const response = await fetch(url, config);
+            
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                throw new Error('Respuesta inválida del servidor');
+            }
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Error en la petición');
+            if (!response.ok) {
+                console.error('API Error:', response.status, data);
+                throw new Error(data.error || data.message || 'Error en la petición');
+            }
+
+            console.log('API Response:', data);
+            return data;
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            if (error.message === 'Failed to fetch') {
+                throw new Error('No se puede conectar al servidor. Verifica que esté corriendo en http://localhost:3000');
+            }
+            throw error;
         }
-
-        return data;
     }
 
     // Auth
@@ -287,9 +305,9 @@ class RealAPI {
     }
 
     async cancelRequest(id) {
-        const endpoint = API_CONFIG.ENDPOINTS.CANCEL_REQUEST.replace(':id', id);
+        const endpoint = `${API_CONFIG.ENDPOINTS.CANCEL_REQUEST.replace(':id', id)}/cancel`;
         return this.request(endpoint, {
-            method: 'POST'
+            method: 'PUT'
         });
     }
 

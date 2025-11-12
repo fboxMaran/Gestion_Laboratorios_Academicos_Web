@@ -93,7 +93,7 @@ const InventoryModel = {
       await client.query('BEGIN');
 
       // Validar fixed belong to lab
-      const cur = await client.query(`SELECT id, lab_id FROM resources_fixed WHERE id = $1`, [fixed_id]);
+      const cur = await client.query(`SELECT id, lab_id FROM resource WHERE id = $1`, [fixed_id]);
       if (!cur.rows.length) {
         const err = new Error('Recurso fijo no encontrado'); err.status = 404; throw err;
       }
@@ -104,7 +104,7 @@ const InventoryModel = {
 
       // Actualizar estado en resources_fixed
       await client.query(
-        `UPDATE resources_fixed SET status = $2 WHERE id = $1`,
+        `UPDATE resource_fixed SET status = $2 WHERE id = $1`,
         [fixed_id, status]
       );
 

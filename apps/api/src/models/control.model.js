@@ -3,7 +3,7 @@ const { pool } = require('../db/pool');
 
 async function getRequestBasic(reqId) {
   const { rows } = await pool.query(
-    `SELECT id, lab_id, requester_name, requester_email FROM requests WHERE id = $1`,
+    `SELECT id, lab_id, requester_name, requester_email FROM request WHERE id = $1`,
     [reqId]
   );
   return rows[0] || null;
@@ -38,7 +38,7 @@ const ControlModel = {
         // Si es resource (catalogado con qty_available), validar stock
         if (it.resource_id) {
           const r = (await client.query(
-            `SELECT id, qty_available FROM resources WHERE id = $1 AND lab_id = $2 FOR UPDATE`,
+            `SELECT id, qty_available FROM resource WHERE id = $1 AND lab_id = $2 FOR UPDATE`,
             [it.resource_id, req.lab_id]
           )).rows[0];
           if (!r) { const e = new Error(`resource_id ${it.resource_id} no existe o no pertenece al lab`); e.status = 400; throw e; }
@@ -47,13 +47,13 @@ const ControlModel = {
             e.status = 400; throw e;
           }
           await client.query(
-            `UPDATE resources SET qty_available = qty_available - $2 WHERE id = $1`,
+            `UPDATE resource SET qty_available = qty_available - $2 WHERE id = $1`,
             [it.resource_id, qty]
           );
         } else {
           // fixed_id: no tiene qty en tabla, solo registramos la asignación
           const f = (await client.query(
-            `SELECT id FROM resources_fixed WHERE id = $1 AND lab_id = $2`,
+            `SELECT id FROM resource WHERE id = $1 AND lab_id = $2`,
             [it.fixed_id, req.lab_id]
           )).rows[0];
           if (!f) { const e = new Error(`fixed_id ${it.fixed_id} no existe o no pertenece al lab`); e.status = 400; throw e; }
@@ -87,8 +87,8 @@ const ControlModel = {
     const { rows } = await pool.query(
       `SELECT a.*, r.name AS resource_name, f.name AS fixed_name
          FROM resource_assignments a
-         LEFT JOIN resources r ON r.id = a.resource_id
-         LEFT JOIN resources_fixed f ON f.id = a.fixed_id
+         LEFT JOIN resource r ON r.id = a.resource_id
+         LEFT JOIN resource f ON f.id = a.fixed_id
        WHERE a.request_id = $1
        ORDER BY a.assigned_at DESC, a.id DESC`,
       [request_id]
@@ -110,7 +110,7 @@ const ControlModel = {
       // Si es resource, devolver stock
       if (a.resource_id) {
         await client.query(
-          `UPDATE resources SET qty_available = qty_available + $2 WHERE id = $1`,
+          `UPDATE resource SET qty_available = qty_available + $2 WHERE id = $1`,
           [a.resource_id, a.qty]
         );
       }
@@ -225,8 +225,8 @@ const ControlModel = {
          COALESCE(r.name, f.name, '(equipo)') AS item_name,
          SUM(a.qty)::numeric AS total_qty
        FROM resource_assignments a
-       LEFT JOIN resources r ON r.id = a.resource_id
-       LEFT JOIN resources_fixed f ON f.id = a.fixed_id
+       LEFT JOIN resource r ON r.id = a.resource_id
+       LEFT JOIN resource f ON f.id = a.fixed_id
        WHERE a.lab_id = $1
          AND a.assigned_at >= $2
          AND a.assigned_at <= $3

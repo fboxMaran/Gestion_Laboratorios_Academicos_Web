@@ -22,7 +22,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge" id="notificationCount">0</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -221,26 +220,42 @@
 
         // Variables globales
         let allHistory = [];
+        let currentFilteredHistory = []; // Almacena los datos actualmente filtrados/mostrados
         let currentActivity = null;
 
-        // Cargar usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
+        // Cargar usuario desde la API
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.name || 'Usuario';
+            } catch (error) {
+                console.error('[History] Error al cargar usuario:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
         }
 
         // Cargar datos iniciales
         async function loadInitialData() {
             try {
+                // Cargar nombre del usuario
+                await loadUserInfo();
+                
                 // Cargar historial
+                console.log('[History] Solicitando historial del usuario...');
                 allHistory = await api.getHistory();
-                renderHistory(allHistory);
-                updateStats(allHistory);
-
-                // Cargar notificaciones
-                const notifications = await api.getNotifications();
-                const unread = notifications.filter(n => !n.read).length;
-                document.getElementById('notificationCount').textContent = unread;
+                console.log('[History] Historial recibido:', allHistory);
+                console.log('[History] Total de registros:', allHistory ? allHistory.length : 0);
+                
+                if (!allHistory || allHistory.length === 0) {
+                    console.warn('[History] No se encontraron actividades en el historial');
+                    showNotification('No hay actividades en tu historial', 'info');
+                }
+                
+                renderHistory(allHistory || []);
+                updateStats(allHistory || []);
 
             } catch (error) {
                 console.error('Error al cargar datos:', error);
@@ -286,8 +301,12 @@
         function renderHistory(history) {
             const tbody = document.getElementById('historyTable');
             
+            // Actualizar los datos filtrados actuales
+            currentFilteredHistory = history;
+            
             if (history.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay actividades en el historial</td></tr>';
+                currentFilteredHistory = [];
                 return;
             }
 
@@ -310,6 +329,7 @@
                 
                 // Nombre del recurso/capacitación
                 const displayName = item.resource_name || item.title || 'N/A';
+                const labName = item.lab_name || 'N/A';
                 
                 return `
                     <tr>
@@ -319,9 +339,9 @@
                         </td>
                         <td>
                             <strong>${displayName}</strong><br>
-                            <small class="text-secondary">${item.lab_name}</small>
+                            <small class="text-secondary">${labName}</small>
                         </td>
-                        <td>${formatDate(item.date, 'DD/MM/YYYY')}</td>
+                        <td>${item.date ? formatDate(item.date, 'DD/MM/YYYY') : 'N/A'}</td>
                         <td>${timeStart}</td>
                         <td>${timeEnd}</td>
                         <td>${duration}</td>
@@ -398,18 +418,50 @@
             }
 
             renderHistory(filtered);
+            updateStats(filtered); // Actualizar estadísticas con los datos filtrados
         }
 
         window.clearFilters = function() {
             document.getElementById('filterForm').reset();
             renderHistory(allHistory);
+            updateStats(allHistory); // Restaurar estadísticas completas
         };
 
         // Ver detalles
         window.viewDetails = function(id) {
-            const item = allHistory.find(h => h.id === id);
-            if (!item) return;
-
+            console.log('='.repeat(50));
+            console.log('[View Details] INICIO - ID recibido:', id, '(tipo:', typeof id, ')');
+            console.log('[View Details] allHistory está definido?', typeof allHistory !== 'undefined');
+            console.log('[View Details] allHistory es array?', Array.isArray(allHistory));
+            console.log('[View Details] Total actividades:', allHistory ? allHistory.length : 'N/A');
+            
+            if (!allHistory || allHistory.length === 0) {
+                console.error('[View Details] ERROR: allHistory está vacío o no definido');
+                showNotification('No hay actividades cargadas', 'error');
+                return;
+            }
+            
+            console.log('[View Details] IDs disponibles:', allHistory.map(h => `${h.id} (${typeof h.id})`));
+            
+            // Convertir a número para comparación (manejar tanto string como number)
+            const numId = Number(id);
+            console.log('[View Details] Buscando ID convertido:', numId);
+            
+            const item = allHistory.find(h => {
+                const itemId = Number(h.id); // Convertir el ID del item también
+                const match = itemId === numId;
+                console.log(`  - Comparando ${h.id} (${typeof h.id}) convertido a ${itemId} === ${numId}:`, match);
+                return match;
+            });
+            
+            if (!item) {
+                console.error('[View Details] ❌ NO ENCONTRADO - ID:', numId);
+                console.error('[View Details] Contenido de allHistory:', JSON.stringify(allHistory.map(h => ({id: h.id, type: h.type})), null, 2));
+                showNotification('No se encontró la actividad', 'error');
+                return;
+            }
+            
+            console.log('[View Details] ✅ Actividad encontrada:', item);
             currentActivity = item;
 
             const typeIcon = item.type === 'reservation' ? '📚' : '🎓';
@@ -422,6 +474,16 @@
             
             if (item.type === 'reservation') {
                 const duration = calculateDuration(item.time_from, item.time_to);
+                // Construir lista de recursos
+                let resourcesHTML = '';
+                if (item.resources && item.resources.length > 0) {
+                    resourcesHTML = item.resources.map(r => 
+                        `<li><strong>${r.name}</strong> (${r.type}) - Cantidad: ${r.qty || 1}</li>`
+                    ).join('');
+                } else {
+                    resourcesHTML = `<li>${item.resource_name || 'N/A'}</li>`;
+                }
+                
                 detailsHTML = `
                     <div class="details-grid">
                         <div class="detail-item">
@@ -432,29 +494,35 @@
                             <strong>Estado:</strong>
                             <span class="badge badge-${item.status}">${getStatusText(item.status)}</span>
                         </div>
-                        <div class="detail-item">
-                            <strong>Recurso:</strong>
-                            <span>${item.resource_name}</span>
+                        <div class="detail-item full-width">
+                            <strong>Recursos solicitados:</strong>
+                            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                                ${resourcesHTML}
+                            </ul>
                         </div>
                         <div class="detail-item">
                             <strong>Laboratorio:</strong>
-                            <span>${item.lab_name}</span>
+                            <span>${item.lab_name || 'N/A'}</span>
                         </div>
                         <div class="detail-item">
                             <strong>Fecha:</strong>
-                            <span>${formatDate(item.date, 'DD/MM/YYYY')}</span>
+                            <span>${item.date ? formatDate(item.date, 'DD/MM/YYYY') : 'N/A'}</span>
                         </div>
                         <div class="detail-item">
                             <strong>Horario:</strong>
-                            <span>${item.time_from} - ${item.time_to}</span>
+                            <span>${item.time_from || 'N/A'} - ${item.time_to || 'N/A'}</span>
                         </div>
                         <div class="detail-item">
                             <strong>Duración:</strong>
                             <span>${duration}</span>
                         </div>
                         <div class="detail-item">
+                            <strong>Objetivo:</strong>
+                            <span>${item.purpose || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
                             <strong>Creada:</strong>
-                            <span>${formatDate(item.created_at, 'DD/MM/YYYY HH:mm')}</span>
+                            <span>${item.created_at ? formatDate(item.created_at, 'DD/MM/YYYY HH:mm') : 'N/A'}</span>
                         </div>
                     </div>
                 `;
@@ -511,12 +579,20 @@
                 certBtn.style.display = 'none';
             }
 
-            document.getElementById('detailsModal').classList.add('show');
+            console.log('[View Details] Abriendo modal...');
+            const modal = document.getElementById('detailsModal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Prevenir scroll del body
+            console.log('[View Details] Modal abierto correctamente');
         };
 
         window.closeDetailsModal = function() {
-            document.getElementById('detailsModal').classList.remove('show');
+            console.log('[View Details] Cerrando modal...');
+            const modal = document.getElementById('detailsModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = ''; // Restaurar scroll del body
             currentActivity = null;
+            console.log('[View Details] Modal cerrado');
         };
 
         // Cerrar modal al hacer clic en el overlay
@@ -546,6 +622,8 @@
             try {
                 // Obtener las actividades actualmente mostradas en la tabla
                 const filteredData = getCurrentFilteredData();
+                console.log('[PDF Export] Datos filtrados:', filteredData);
+                console.log('[PDF Export] Total actividades:', filteredData.length);
                 
                 if (filteredData.length === 0) {
                     showNotification('No hay actividades para exportar', 'warning');
@@ -615,8 +693,8 @@
                     return [
                         typeText,
                         displayName,
-                        item.lab_name,
-                        formatDate(item.date, 'DD/MM/YYYY'),
+                        item.lab_name || 'N/A',
+                        item.date ? formatDate(item.date, 'DD/MM/YYYY') : 'N/A',
                         timeStart,
                         timeEnd,
                         duration,
@@ -691,28 +769,8 @@
 
         // Obtener datos actualmente filtrados en la tabla
         function getCurrentFilteredData() {
-            const tbody = document.getElementById('historyTable');
-            const rows = tbody.querySelectorAll('tr');
-            
-            // Si solo hay una fila y es el mensaje de "No hay actividades"
-            if (rows.length === 1 && rows[0].cells.length === 1) {
-                return [];
-            }
-            
-            // Obtener los IDs de las filas visibles
-            const visibleIds = Array.from(rows)
-                .map(row => {
-                    const viewBtn = row.querySelector('button[onclick^="viewDetails"]');
-                    if (viewBtn) {
-                        const match = viewBtn.getAttribute('onclick').match(/viewDetails\((\d+)\)/);
-                        return match ? parseInt(match[1]) : null;
-                    }
-                    return null;
-                })
-                .filter(id => id !== null);
-            
-            // Filtrar allHistory para obtener solo los items visibles
-            return allHistory.filter(item => visibleIds.includes(item.id));
+            // Retornar directamente los datos filtrados actuales
+            return currentFilteredHistory || [];
         }
 
         // Calcular estadísticas de un conjunto de datos
@@ -748,6 +806,8 @@
             try {
                 // Obtener las actividades actualmente mostradas en la tabla
                 const filteredData = getCurrentFilteredData();
+                console.log('[Excel Export] Datos filtrados:', filteredData);
+                console.log('[Excel Export] Total actividades:', filteredData.length);
                 
                 if (filteredData.length === 0) {
                     showNotification('No hay actividades para exportar', 'warning');
@@ -1012,8 +1072,8 @@
                     return [
                         typeText,
                         displayName,
-                        item.lab_name,
-                        formatDate(item.date, 'DD/MM/YYYY'),
+                        item.lab_name || 'N/A',
+                        item.date ? formatDate(item.date, 'DD/MM/YYYY') : 'N/A',
                         timeStart,
                         timeEnd,
                         duration,
@@ -1119,6 +1179,8 @@
 
                 // Generar el archivo Excel con estilos
                 const fileName = `Historial_Actividades_${new Date().toISOString().split('T')[0]}.xlsx`;
+                console.log('[Excel Export] Generando archivo:', fileName);
+                
                 XLSX.writeFile(wb, fileName, { 
                     bookType: 'xlsx', 
                     bookSST: false, 
@@ -1126,6 +1188,7 @@
                     cellStyles: true 
                 });
 
+                console.log('[Excel Export] Archivo generado exitosamente');
                 showNotification('Excel exportado exitosamente', 'success');
 
             } catch (error) {

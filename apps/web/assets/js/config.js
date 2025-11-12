@@ -6,44 +6,46 @@
  */
 
 // MODO DE OPERACIÓN
-export const USE_MOCK_DATA = true; // Cambiar a false cuando el backend esté listo
+export const USE_MOCK_DATA = false; // ✅ Cambiado a false para usar API real
 
-// URLS DEL API (para cuando esté listo)
+// URLS DEL API
 export const API_CONFIG = {
     BASE_URL: 'http://localhost:3000/api',
     ENDPOINTS: {
         // Auth
         LOGIN: '/auth/login',
         LOGOUT: '/auth/logout',
-        VERIFY: '/auth/verify',
+        REGISTER: '/auth/register',
         
         // User Profile
-        PROFILE: '/users/profile',
-        UPDATE_PROFILE: '/users/profile',
+        PROFILE: '/users/me',
+        UPDATE_PROFILE: '/users/me',
         
         // Search & Browse
         SEARCH_LABS: '/browse/labs',
         SEARCH_RESOURCES: '/browse/resources',
-        LAB_DETAILS: '/browse/labs/:id',
-        RESOURCE_DETAILS: '/browse/resources/:id',
+        LAB_DETAILS: '/labs/:id',
+        RESOURCE_DETAILS: '/resources/:id',
         
         // Requests
         REQUESTS: '/requests',
         CREATE_REQUEST: '/requests',
         REQUEST_DETAILS: '/requests/:id',
-        CANCEL_REQUEST: '/requests/:id/cancel',
+        CANCEL_REQUEST: '/requests/:id',
         
         // History
-        HISTORY: '/users/history',
-        RESERVATIONS: '/users/reservations',
-        TRAININGS: '/users/trainings',
-        EXPORT_HISTORY: '/users/history/export',
+        HISTORY: '/users/me/history',
+        TRAININGS: '/users/me/trainings',
+        LAB_REQUIREMENTS: '/users/me/lab-requirements',
         
         // Notifications
         NOTIFICATIONS: '/notifications',
-        MARK_READ: '/notifications/:id/read',
-        MARK_ALL_READ: '/notifications/read-all',
+        MARK_READ: '/notifications/:id/seen',
+        MARK_ALL_READ: '/notifications/mark-all-seen',
         DELETE_NOTIFICATION: '/notifications/:id',
+
+        // Inventory
+        INVENTORY: '/inventory',
 
         // Reports
         REPORTS: '/reports',

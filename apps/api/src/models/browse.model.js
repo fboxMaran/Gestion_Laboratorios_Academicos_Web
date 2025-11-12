@@ -26,7 +26,7 @@ async function userEligibleForLab(lab_id, user_id) {
 
 const BrowseModel = {
   /**
-   * Buscar LABS por criterios básicos y marcar elegibilidad del usuario.
+   * Buscar lab por criterios básicos y marcar elegibilidad del usuario.
    */
   async searchLabs({ q, location, user_id }) {
     const args = []; const cond = [];
@@ -34,8 +34,8 @@ const BrowseModel = {
     if (location) { args.push(`%${location.toLowerCase()}%`); cond.push(`LOWER(l.location) LIKE $${args.length}`); }
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
     const { rows } = await pool.query(
-      `SELECT l.id, l.name, l.code, l.location, l.description
-         FROM labs l
+      `SELECT l.id, l.name, l.internal_code as code, l.location, l.description, l.capacity_max as capacity
+         FROM lab l
          ${where}
          ORDER BY l.name ASC
          LIMIT 100`,
@@ -51,20 +51,22 @@ const BrowseModel = {
   },
 
   /**
-   * Buscar RESOURCES con filtros; incluir "next_available_slot" (si hay) dentro de ventana dada.
+   * Buscar resource con filtros; incluir "next_available_slot" (si hay) dentro de ventana dada.
    * status: filtramos por DISPONIBLE por defecto, a menos que show_all=true.
    */
   async searchResources({ lab_id, type_id, q, date_from, date_to, show_all = false, user_id, only_eligible = true }) {
     const args = []; const cond = [];
     if (lab_id) { args.push(lab_id); cond.push(`r.lab_id = $${args.length}`); }
-    if (type_id) { args.push(type_id); cond.push(`r.type_id = $${args.length}`); }
+    if (type_id) { args.push(type_id); cond.push(`r.type = $${args.length}`); }
     if (q) { args.push(`%${q.toLowerCase()}%`); cond.push(`(LOWER(r.name) LIKE $${args.length} OR LOWER(COALESCE(r.description,'')) LIKE $${args.length})`); }
-    if (!show_all) cond.push(`r.status = 'DISPONIBLE'`);
+    if (!show_all) cond.push(`r.state = 'DISPONIBLE'`);
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
 
     const base = await pool.query(
-      `SELECT r.id, r.lab_id, r.type_id, r.name, r.description, r.status, r.qty_available
-         FROM resources r
+      `SELECT r.id, r.lab_id, r.type, r.name, r.description, r.state as status, r.inventory_code,
+              l.name as lab_name
+         FROM resource r
+         LEFT JOIN lab l ON l.id = r.lab_id
          ${where}
          ORDER BY r.name ASC
          LIMIT 200`,
@@ -83,10 +85,10 @@ const BrowseModel = {
     if (byId.size) {
       const ids = Array.from(byId.keys());
       const { rows: slots } = await pool.query(
-        `SELECT resource_id, MIN(starts_at) AS next_start, MIN(ends_at) FILTER (WHERE starts_at = MIN(starts_at)) AS next_end
-           FROM calendar_slots
+        `SELECT DISTINCT ON (resource_id) resource_id, starts_at AS next_start, ends_at AS next_end
+           FROM calendar_slot
           ${slotWhereSql} AND resource_id = ANY($${slotsArgs.length+1}::int[])
-          GROUP BY resource_id`,
+          ORDER BY resource_id, starts_at ASC`,
         [...slotsArgs, ids]
       );
       for (const s of slots) {
@@ -126,7 +128,7 @@ const BrowseModel = {
 
     const { rows } = await pool.query(
       `SELECT id, lab_id, resource_id, starts_at, ends_at, status, title, reason
-         FROM calendar_slots
+         FROM calendar_slot
          ${where}
          ORDER BY starts_at ASC`,
       args

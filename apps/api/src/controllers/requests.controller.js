@@ -103,46 +103,94 @@ async function create(req, res) {
   const client = await pool.connect();
   try {
     const {
-      lab_id, requested_from, requested_to, purpose, priority = 'NORMAL',
-      items = [], requester_name, requester_email, requester_role, requester_program, user_id,
+      lab_id, purpose, items = [], requester_role, user_id,
+      starts_at, ends_at, reason
     } = req.body;
 
     const uid = user_id || userIdFrom(req);
 
-    if (!lab_id || !requested_from || !requested_to || !purpose) {
+    if (!lab_id || !purpose) {
       return res.status(400).json({ error: 'Campos obligatorios faltantes' });
     }
-    if (!requester_name || !requester_email || !requester_role) {
+    if (!requester_role) {
       return res.status(400).json({ error: 'Datos del solicitante incompletos' });
+    }
+    if (!starts_at || !ends_at) {
+      return res.status(400).json({ error: 'Las fechas de inicio y fin son obligatorias' });
     }
 
     const resourceIds = items.filter(i => i.resource_id).map(i => i.resource_id);
 
-    const [avail, reqs] = await Promise.all([
-      checkAvailability({ labId: lab_id, resourceIds, from: requested_from, to: requested_to }),
-      uid ? requirementsOk({ labId: lab_id, userId: uid }) : Promise.resolve({ ok: true, missing: [] }),
-    ]);
+    // Si hay fechas, verificar disponibilidad
+    let avail = { ok: true, conflicts: [] };
+    if (starts_at && ends_at) {
+      avail = await checkAvailability({ 
+        labId: lab_id, 
+        resourceIds, 
+        from: starts_at, 
+        to: ends_at 
+      });
+    }
+
+    const reqs = uid ? 
+      await requirementsOk({ labId: lab_id, userId: uid }) : 
+      { ok: true, missing: [] };
 
     await client.query('BEGIN');
 
+    // Crear la solicitud
     const ins = await client.query(
-      `INSERT INTO requests
-         (lab_id, requester_name, requester_email, requester_role, requester_program,
-          purpose, priority, requested_from, requested_to, requirements_ok, status, user_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'PENDIENTE',$11)
+      `INSERT INTO request
+         (requester_id, role_snapshot, lab_id, objective, requirements_ok, status)
+       VALUES ($1, $2, $3, $4, $5, 'PENDIENTE')
        RETURNING *`,
-      [lab_id, requester_name, requester_email, requester_role, requester_program || null,
-       purpose, priority, requested_from, requested_to, reqs.ok, uid]
+      [uid, requester_role, lab_id, purpose, reqs.ok]
     );
 
     const requestId = ins.rows[0].id;
 
+    // Agregar items a la solicitud
     for (const it of items) {
+      // Obtener el tipo del recurso
+      let itemType = 'LAB_SPACE'; // Por defecto si no hay resource_id
+      if (it.resource_id) {
+        const resType = await client.query(
+          `SELECT type FROM resource WHERE id = $1`,
+          [it.resource_id]
+        );
+        if (resType.rows.length > 0) {
+          itemType = resType.rows[0].type;
+        }
+      }
+
       await client.query(
-        `INSERT INTO request_items (request_id, resource_id, qty)
-         VALUES ($1, $2, $3)`,
-        [requestId, it.resource_id || null, it.qty || 1]
+        `INSERT INTO request_item (request_id, resource_id, type, qty, use_start, use_end)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [requestId, it.resource_id || null, itemType, it.qty || 1, starts_at, ends_at]
       );
+    }
+
+    // Si hay fechas, crear calendar_slot para reservar
+    if (starts_at && ends_at) {
+      // Reservar el laboratorio
+      await client.query(
+        `INSERT INTO calendar_slot 
+          (lab_id, resource_id, starts_at, ends_at, status, reason, created_by)
+         VALUES ($1, NULL, $2, $3, 'RESERVADO', $4, $5)`,
+        [lab_id, starts_at, ends_at, reason || purpose, uid]
+      );
+
+      // Reservar cada recurso
+      for (const it of items) {
+        if (it.resource_id) {
+          await client.query(
+            `INSERT INTO calendar_slot 
+              (lab_id, resource_id, starts_at, ends_at, status, reason, created_by)
+             VALUES ($1, $2, $3, $4, 'RESERVADO', $5, $6)`,
+            [lab_id, it.resource_id, starts_at, ends_at, reason || purpose, uid]
+          );
+        }
+      }
     }
 
     await client.query('COMMIT');
@@ -177,12 +225,12 @@ async function setStatus(req, res) {
   try {
     await client.query('BEGIN');
 
-    const { rows } = await client.query(`SELECT * FROM requests WHERE id=$1 FOR UPDATE`, [id]);
+    const { rows } = await client.query(`SELECT * FROM request WHERE id=$1 FOR UPDATE`, [id]);
     if (!rows.length) return res.status(404).json({ error: 'Solicitud no existe' });
     const r = rows[0];
 
     const up = await client.query(
-      `UPDATE requests
+      `UPDATE request
           SET status=$2, reviewer_note=COALESCE($3, reviewer_note), updated_at=NOW()
         WHERE id=$1
         RETURNING *`,
@@ -191,17 +239,17 @@ async function setStatus(req, res) {
 
     if (status === 'APROBADA') {
       await client.query(
-        `INSERT INTO calendar_slots
+        `INSERT INTO calendar_slot
            (lab_id, starts_at, ends_at, status, title, reason, created_by)
          VALUES ($1,$2,$3,'RESERVADO',$4,$5,$6)`,
         [r.lab_id, r.requested_from, r.requested_to,
          `Reserva #${id}`, 'Reserva aprobada', req.user?.id || null]
       );
-      const its = await client.query(`SELECT resource_id, qty FROM request_items WHERE request_id=$1`, [id]);
+      const its = await client.query(`SELECT resource_id, qty FROM request_item WHERE request_id=$1`, [id]);
       for (const it of its.rows) {
         if (!it.resource_id) continue;
         await client.query(
-          `INSERT INTO calendar_slots
+          `INSERT INTO calendar_slot
              (lab_id, resource_id, starts_at, ends_at, status, title, reason, created_by)
            VALUES ($1,$2,$3,$4,'RESERVADO',$5,$6,$7)`,
           [r.lab_id, it.resource_id, r.requested_from, r.requested_to,
@@ -228,25 +276,31 @@ async function cancel(req, res) {
   const id = Number(req.params.id);
   const uid = userIdFrom(req);
   try {
-    const { rows } = await pool.query(`SELECT * FROM requests WHERE id=$1`, [id]);
+    const { rows } = await pool.query(`SELECT * FROM request WHERE id=$1`, [id]);
     if (!rows.length) return res.status(404).json({ error: 'Solicitud no existe' });
     const r = rows[0];
-    if (r.user_id && uid && r.user_id !== uid) {
+    
+    // Verificar que el usuario sea el dueño de la solicitud
+    if (r.requester_id && uid && r.requester_id !== uid) {
       return res.status(403).json({ error: 'No puede cancelar esta solicitud' });
     }
-    if (r.status !== 'PENDIENTE') {
-      return res.status(400).json({ error: 'Solo se puede cancelar si está PENDIENTE' });
-    }
-    if (new Date(r.requested_from) <= new Date()) {
-      return res.status(400).json({ error: 'La reserva ya inició o está por iniciar' });
+    
+    // Solo se pueden cancelar solicitudes PENDIENTE, EN_REVISION o NECESITA_INFO
+    if (!['PENDIENTE', 'EN_REVISION', 'NECESITA_INFO'].includes(r.status)) {
+      return res.status(400).json({ error: 'Solo se pueden cancelar solicitudes pendientes' });
     }
 
     const up = await pool.query(
-      `UPDATE requests SET status='CANCELADA', updated_at=NOW() WHERE id=$1 RETURNING *`,
+      `UPDATE request SET status='CANCELADA', updated_at=NOW() WHERE id=$1 RETURNING *`,
       [id]
     );
 
-    await notifyRequestStatus({ requestId: id });
+    // Registrar en historial
+    await pool.query(
+      `INSERT INTO lab_history (lab_id, actor_user_id, action_type, detail)
+       VALUES ($1, $2, $3, $4)`,
+      [r.lab_id, uid, 'REQUEST_CANCEL', JSON.stringify({ request_id: id })]
+    );
 
     res.json(up.rows[0]);
   } catch (e) {
@@ -260,7 +314,7 @@ async function listMessages(req, res) {
   const id = Number(req.params.id);
   const { rows } = await pool.query(
     `SELECT id, sender, message, created_at
-       FROM request_messages
+       FROM message
       WHERE request_id=$1
       ORDER BY created_at ASC`,
     [id]
@@ -275,7 +329,7 @@ async function addMessage(req, res) {
     return res.status(400).json({ error: 'Datos inválidos' });
   }
   const { rows } = await pool.query(
-    `INSERT INTO request_messages (request_id, sender, message)
+    `INSERT INTO message (request_id, sender, message)
      VALUES ($1,$2,$3) RETURNING *`,
     [id, sender, message.trim()]
   );

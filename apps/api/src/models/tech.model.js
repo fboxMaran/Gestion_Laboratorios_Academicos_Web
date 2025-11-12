@@ -32,8 +32,8 @@ const TechModel = {
           WHEN $${args.length + 1}::bool = true AND r.requested_to < NOW() THEN true
           ELSE false
         END AS is_overdue
-      FROM requests r
-      LEFT JOIN request_items i ON i.request_id = r.id
+      FROM request r
+      LEFT JOIN request_item i ON i.request_id = r.id
       ${where}
       GROUP BY r.id
       ORDER BY r.requested_from ASC
@@ -51,12 +51,12 @@ const TechModel = {
    */
   async precheckRequest(request_id) {
     // carga solicitud + items
-    const reqQ = await pool.query(`SELECT * FROM requests WHERE id = $1`, [request_id]);
+    const reqQ = await pool.query(`SELECT * FROM request WHERE id = $1`, [request_id]);
     const req = reqQ.rows[0] || null;
     if (!req) return { exists: false };
 
     const itemsQ = await pool.query(
-      `SELECT id, resource_id, qty FROM request_items WHERE request_id = $1 ORDER BY id ASC`,
+      `SELECT id, resource_id, qty FROM request_item WHERE request_id = $1 ORDER BY id ASC`,
       [request_id]
     );
     const items = itemsQ.rows;
@@ -69,7 +69,7 @@ const TechModel = {
         continue;
       }
       const rQ = await pool.query(
-        `SELECT id, name, qty_available, status FROM resources WHERE id = $1`,
+        `SELECT id, name, qty_available, status FROM resource WHERE id = $1`,
         [it.resource_id]
       );
       const r = rQ.rows[0] || null;
@@ -100,8 +100,8 @@ const TechModel = {
 
   /**
    * Crear una ASIGNACIÓN (entrega). Soporta resource_id (catalogado) o fixed_id (equipo fijo).
-   * - Debita qty_available en resources si aplica.
-   * - Marca resources_fixed a 'RESERVADO' si aplica.
+   * - Debita qty_available en resource si aplica.
+   * - Marca resource a 'RESERVADO' si aplica.
    */
   async createAssignment({
     request_id, lab_id, user_id, resource_id, fixed_id, qty = 1, due_at, notes, actor_user_id
@@ -118,7 +118,7 @@ const TechModel = {
       await client.query('BEGIN');
 
       // verificar que solicitud esté aprobada
-      const rq = await client.query(`SELECT status FROM requests WHERE id = $1`, [request_id]);
+      const rq = await client.query(`SELECT status FROM request WHERE id = $1`, [request_id]);
       if (!rq.rows.length) { const e = new Error('Solicitud no existe'); e.status = 404; throw e; }
       if (rq.rows[0].status !== 'APROBADA') {
         const e = new Error('La solicitud no está APROBADA'); e.status = 409; throw e;
@@ -126,7 +126,7 @@ const TechModel = {
 
       // recursos catalogados: verificar stock y debitar
       if (resource_id) {
-        const rQ = await client.query(`SELECT id, qty_available, status FROM resources WHERE id = $1 FOR UPDATE`, [resource_id]);
+        const rQ = await client.query(`SELECT id, qty_available, status FROM resource WHERE id = $1 FOR UPDATE`, [resource_id]);
         const r = rQ.rows[0];
         if (!r) { const e = new Error('Recurso no existe'); e.status = 404; throw e; }
         if (r.status === 'INACTIVO' || r.status === 'MANTENIMIENTO') {
@@ -134,18 +134,18 @@ const TechModel = {
         }
         const newQty = Number(r.qty_available) - Number(qty || 1);
         if (newQty < 0) { const e = new Error('Stock insuficiente'); e.status = 409; throw e; }
-        await client.query(`UPDATE resources SET qty_available = $2, updated_at = NOW() WHERE id = $1`, [resource_id, newQty]);
+        await client.query(`UPDATE resource SET qty_available = $2, updated_at = NOW() WHERE id = $1`, [resource_id, newQty]);
       }
 
       // equipos fijos: marcar como reservado
       if (fixed_id) {
-        const fQ = await client.query(`SELECT id, status FROM resources_fixed WHERE id = $1 FOR UPDATE`, [fixed_id]);
+        const fQ = await client.query(`SELECT id, status FROM resource WHERE id = $1 FOR UPDATE`, [fixed_id]);
         const f = fQ.rows[0];
         if (!f) { const e = new Error('Equipo fijo no existe'); e.status = 404; throw e; }
         if (f.status === 'INACTIVO' || f.status === 'MANTENIMIENTO') {
           const e = new Error(`Equipo fijo en estado ${f.status}`); e.status = 409; throw e;
         }
-        await client.query(`UPDATE resources_fixed SET status = 'RESERVADO' WHERE id = $1`, [fixed_id]);
+        await client.query(`UPDATE resource_fixed SET status = 'RESERVADO' WHERE id = $1`, [fixed_id]);
       }
 
       // crear asignación
@@ -192,14 +192,14 @@ const TechModel = {
 
       // reponer stock / liberar fijo
       if (a.resource_id) {
-        const rQ = await client.query(`SELECT id, qty_available FROM resources WHERE id = $1 FOR UPDATE`, [a.resource_id]);
+        const rQ = await client.query(`SELECT id, qty_available FROM resource WHERE id = $1 FOR UPDATE`, [a.resource_id]);
         if (rQ.rows.length) {
           const newQty = Number(rQ.rows[0].qty_available) + Number(a.qty || 1);
-          await client.query(`UPDATE resources SET qty_available = $2, updated_at = NOW() WHERE id = $1`, [a.resource_id, newQty]);
+          await client.query(`UPDATE resource SET qty_available = $2, updated_at = NOW() WHERE id = $1`, [a.resource_id, newQty]);
         }
       }
       if (a.fixed_id) {
-        await client.query(`UPDATE resources_fixed SET status = 'DISPONIBLE' WHERE id = $1`, [a.fixed_id]);
+        await client.query(`UPDATE resource_fixed SET status = 'DISPONIBLE' WHERE id = $1`, [a.fixed_id]);
       }
 
       const upd = await client.query(
@@ -221,7 +221,7 @@ const TechModel = {
       // notificación por atraso (opcional)
       if (notify_user_id && row.due_at && new Date(row.returned_at) > new Date(row.due_at)) {
         await client.query(
-          `INSERT INTO notifications (user_id, title, body, meta)
+          `INSERT INTO notification (user_id, title, body, meta)
            VALUES ($1,$2,$3,$4)`,
           [
             Number(notify_user_id),
@@ -268,7 +268,7 @@ const TechModel = {
 
       if (notify_user_id) {
         await client.query(
-          `INSERT INTO notifications (user_id, title, body, meta)
+          `INSERT INTO notification (user_id, title, body, meta)
            VALUES ($1,$2,$3,$4)`,
           [
             Number(notify_user_id),
@@ -314,7 +314,7 @@ const TechModel = {
 
       if (notify_user_id) {
         await client.query(
-          `INSERT INTO notifications (user_id, title, body, meta)
+          `INSERT INTO notification (user_id, title, body, meta)
            VALUES ($1,$2,$3,$4)`,
           [
             Number(notify_user_id),
@@ -346,8 +346,8 @@ const TechModel = {
              r.name AS resource_name,
              rf.name AS fixed_name
       FROM resource_assignments a
-      LEFT JOIN resources r      ON r.id  = a.resource_id
-      LEFT JOIN resources_fixed rf ON rf.id = a.fixed_id
+      LEFT JOIN resource r      ON r.id  = a.resource_id
+      LEFT JOIN resource rf ON rf.id = a.fixed_id
       ${where}
       ORDER BY a.assigned_at DESC
       `,

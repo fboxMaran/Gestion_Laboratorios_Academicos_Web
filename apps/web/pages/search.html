@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -87,13 +86,12 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="categoryFilter">Categoría</label>
+                                <label for="categoryFilter">Tipo de Recurso</label>
                                 <select id="categoryFilter">
-                                    <option value="">Todas las categorías</option>
-                                    <option value="Electrónica">Electrónica</option>
-                                    <option value="Informática">Informática</option>
-                                    <option value="Química">Química</option>
-                                    <option value="Mecatrónica">Mecatrónica</option>
+                                    <option value="">Todos los tipos</option>
+                                    <option value="EQUIPMENT">Equipamiento</option>
+                                    <option value="CONSUMABLE">Consumible</option>
+                                    <option value="SOFTWARE">Software</option>
                                 </select>
                             </div>
                             
@@ -101,9 +99,10 @@
                                 <label for="statusFilter">Estado</label>
                                 <select id="statusFilter">
                                     <option value="">Todos</option>
-                                    <option value="available">Disponible</option>
-                                    <option value="reserved">Reservado</option>
-                                    <option value="maintenance">En Mantenimiento</option>
+                                    <option value="DISPONIBLE">Disponible</option>
+                                    <option value="RESERVADO">Reservado</option>
+                                    <option value="EN_MANTENIMIENTO">En Mantenimiento</option>
+                                    <option value="INACTIVO">Inactivo</option>
                                 </select>
                             </div>
                         </div>
@@ -141,7 +140,7 @@
     </main>
 
     <!-- Modal para detalles -->
-    <div id="detailsModal" class="modal-overlay">
+    <div id="detailsModal" class="modal-overlay" onclick="if(event.target === this) closeModal()">
         <div class="modal">
             <div class="modal-header">
                 <h3 id="modalTitle">Detalles</h3>
@@ -149,10 +148,6 @@
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Contenido dinámico -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal()">Cerrar</button>
-                <button class="btn btn-primary" onclick="createRequestFromModal()">Solicitar</button>
             </div>
         </div>
     </div>
@@ -165,19 +160,29 @@
         requireAuth();
         window.logout = authLogout;
 
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.name || 'Usuario';
+            } catch (error) {
+                console.error('[Search] Error al cargar perfil:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
         }
 
         let currentLabs = [];
         let currentResources = [];
+        let activeTab = 'labs'; // Pestaña activa por defecto
 
         // Cargar datos iniciales
-        async function loadData() {
+        async function loadData(filters = {}) {
             try {
-                currentLabs = await api.searchLabs();
-                currentResources = await api.searchResources();
+                currentLabs = await api.searchLabs(filters);
+                currentResources = await api.searchResources(filters);
                 
                 renderLabs(currentLabs);
                 renderResources(currentResources);
@@ -197,19 +202,15 @@
             
             container.innerHTML = labs.map(lab => `
                 <div class="card">
-                    <img src="${lab.image}" alt="${lab.name}" class="card-img">
                     <div class="card-body">
                         <h3>${lab.name}</h3>
-                        <p class="text-secondary">${lab.description}</p>
+                        <p class="text-secondary">${lab.description || 'Sin descripción'}</p>
                         
                         <div class="mt-md">
-                            <p><strong>📍 Ubicación:</strong> ${lab.building}, ${lab.room}</p>
-                            <p><strong>👥 Capacidad:</strong> ${lab.capacity} personas</p>
-                            <p><strong>👨‍🔬 Responsable:</strong> ${lab.responsible}</p>
-                            <p><strong>Estado:</strong> <span class="badge badge-${lab.status}">${
-                                lab.status === 'available' ? 'Disponible' :
-                                lab.status === 'maintenance' ? 'Mantenimiento' : 'No disponible'
-                            }</span></p>
+                            <p><strong>📍 Ubicación:</strong> ${lab.location || 'No especificada'}</p>
+                            <p><strong>🔖 Código:</strong> ${lab.code || 'N/A'}</p>
+                            ${lab.capacity ? `<p><strong>👥 Capacidad:</strong> ${lab.capacity} personas</p>` : ''}
+                            <p><strong>✅ Elegible:</strong> ${lab.eligible ? 'Sí' : 'Requiere capacitación'}</p>
                         </div>
                         
                         <div class="mt-md">
@@ -220,6 +221,9 @@
                     </div>
                 </div>
             `).join('');
+            
+            // Actualizar contador
+            document.querySelector('[data-tab="labs"]').textContent = `Laboratorios (${labs.length})`;
         }
 
         function renderResources(resources) {
@@ -232,31 +236,35 @@
             
             container.innerHTML = resources.map(resource => `
                 <div class="card">
-                    <img src="${resource.image}" alt="${resource.name}" class="card-img">
                     <div class="card-body">
                         <h4>${resource.name}</h4>
-                        <p class="text-secondary">${resource.description}</p>
+                        <p class="text-secondary">${resource.description || 'Sin descripción'}</p>
                         
                         <div class="mt-md">
-                            <p><strong>Categoría:</strong> ${resource.category}</p>
-                            <p><strong>Laboratorio:</strong> ${resource.lab_name}</p>
-                            <p><strong>Disponibles:</strong> ${resource.quantity_available} / ${resource.quantity_total}</p>
-                            <p><strong>Estado:</strong> <span class="badge badge-${resource.status}">${
-                                resource.status === 'available' ? 'Disponible' :
-                                resource.status === 'reserved' ? 'Reservado' : 'No disponible'
-                            }</span></p>
+                            <p><strong>Tipo:</strong> ${resource.type || 'N/A'}</p>
+                            <p><strong>Laboratorio:</strong> ${resource.lab_name || 'N/A'}</p>
+                            ${resource.inventory_code ? `<p><strong>Código:</strong> ${resource.inventory_code}</p>` : ''}
+                            <p><strong>Estado:</strong> <span class="badge badge-${
+                                resource.status === 'DISPONIBLE' ? 'success' :
+                                resource.status === 'RESERVADO' ? 'warning' : 
+                                resource.status === 'EN_MANTENIMIENTO' ? 'error' : 'secondary'
+                            }">${resource.status}</span></p>
+                            <p><strong>✅ Elegible:</strong> ${resource.eligible ? 'Sí' : 'Requiere capacitación'}</p>
                         </div>
                         
                         <div class="mt-md">
                             <button class="btn btn-primary btn-block" 
                                     onclick="viewResourceDetails(${resource.id})"
-                                    ${resource.quantity_available === 0 ? 'disabled' : ''}>
-                                ${resource.quantity_available > 0 ? 'Ver Detalles' : 'No Disponible'}
+                                    ${resource.status !== 'DISPONIBLE' ? 'disabled' : ''}>
+                                ${resource.status === 'DISPONIBLE' ? 'Ver Detalles' : resource.status}
                             </button>
                         </div>
                     </div>
                 </div>
             `).join('');
+            
+            // Actualizar contador
+            document.querySelector('[data-tab="resources"]').textContent = `Recursos (${resources.length})`;
         }
 
         // Búsqueda y filtros
@@ -265,51 +273,48 @@
             applyFilters();
         });
 
-        function applyFilters() {
-            const query = document.getElementById('searchQuery').value.toLowerCase();
+        async function applyFilters() {
+            const query = document.getElementById('searchQuery').value.trim();
             const category = document.getElementById('categoryFilter').value;
             const status = document.getElementById('statusFilter').value;
             
-            // Filtrar labs
-            let filteredLabs = currentLabs;
-            if (query) {
-                filteredLabs = filteredLabs.filter(lab => 
-                    lab.name.toLowerCase().includes(query) ||
-                    lab.description.toLowerCase().includes(query)
-                );
+            try {
+                // Preparar filtros para el backend
+                const filters = {};
+                if (query) filters.q = query;
+                
+                // Buscar laboratorios (con query)
+                currentLabs = await api.searchLabs(filters);
+                
+                // Buscar recursos (con todos los filtros)
+                const resourceFilters = { ...filters };
+                if (category) resourceFilters.type_id = category;
+                if (status) resourceFilters.show_all = true; // Para mostrar todos los estados
+                
+                currentResources = await api.searchResources(resourceFilters);
+                
+                // Filtrar recursos por estado en el frontend (si se seleccionó)
+                let filteredResources = currentResources;
+                if (status) {
+                    filteredResources = currentResources.filter(res => res.status === status);
+                }
+                
+                renderLabs(currentLabs);
+                renderResources(filteredResources);
+                
+                // Mostrar notificación según la pestaña activa
+                const count = activeTab === 'labs' ? currentLabs.length : filteredResources.length;
+                const type = activeTab === 'labs' ? 'laboratorios' : 'recursos';
+                showNotification(`${count} ${type} encontrados`, 'success');
+            } catch (error) {
+                console.error('Error al filtrar:', error);
+                showNotification('Error al aplicar filtros', 'error');
             }
-            if (category) {
-                filteredLabs = filteredLabs.filter(lab => lab.category === category);
-            }
-            if (status) {
-                filteredLabs = filteredLabs.filter(lab => lab.status === status);
-            }
-            
-            // Filtrar resources
-            let filteredResources = currentResources;
-            if (query) {
-                filteredResources = filteredResources.filter(res => 
-                    res.name.toLowerCase().includes(query) ||
-                    res.description.toLowerCase().includes(query)
-                );
-            }
-            if (category) {
-                filteredResources = filteredResources.filter(res => res.category === category);
-            }
-            if (status) {
-                filteredResources = filteredResources.filter(res => res.status === status);
-            }
-            
-            renderLabs(filteredLabs);
-            renderResources(filteredResources);
-            
-            showNotification(`${filteredLabs.length + filteredResources.length} resultados encontrados`, 'success');
         }
 
         window.clearFilters = function() {
             document.getElementById('searchForm').reset();
-            renderLabs(currentLabs);
-            renderResources(currentResources);
+            loadData(); // Recargar todos los datos sin filtros
             showNotification('Filtros limpiados', 'info');
         };
 
@@ -317,90 +322,159 @@
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const tab = btn.dataset.tab;
+                activeTab = tab;
                 
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
                 btn.classList.add('active');
                 document.getElementById(`${tab}-content`).classList.add('active');
+                
+                // Mostrar/ocultar filtros específicos de recursos
+                const categoryFilter = document.getElementById('categoryFilter').parentElement;
+                const statusFilter = document.getElementById('statusFilter').parentElement;
+                
+                if (tab === 'labs') {
+                    // En laboratorios, ocultar filtros de tipo y estado
+                    categoryFilter.style.display = 'none';
+                    statusFilter.style.display = 'none';
+                    // Limpiar los filtros para evitar confusión
+                    document.getElementById('categoryFilter').value = '';
+                    document.getElementById('statusFilter').value = '';
+                } else {
+                    // En recursos, mostrar todos los filtros
+                    categoryFilter.style.display = 'block';
+                    statusFilter.style.display = 'block';
+                }
             });
         });
 
         // Modal
         window.viewLabDetails = function(id) {
-            const lab = currentLabs.find(l => l.id === id);
-            if (!lab) return;
+            console.log('Buscando lab con id:', id, 'en:', currentLabs);
+            const lab = currentLabs.find(l => l.id == id); // Usar == para comparación flexible
+            if (!lab) {
+                console.error('Lab no encontrado. IDs disponibles:', currentLabs.map(l => l.id));
+                showNotification('Laboratorio no encontrado', 'error');
+                return;
+            }
             
             document.getElementById('modalTitle').textContent = lab.name;
             document.getElementById('modalBody').innerHTML = `
                 <div>
-                    <img src="${lab.image}" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;">
-                    <p>${lab.description}</p>
-                    <h4>Información General</h4>
+                    <p class="text-secondary">${lab.description || 'Sin descripción disponible'}</p>
+                    
+                    <h4 class="mt-lg">📋 Información General</h4>
                     <ul>
-                        <li><strong>Ubicación:</strong> ${lab.building} - ${lab.floor}° piso, ${lab.room}</li>
-                        <li><strong>Capacidad:</strong> ${lab.capacity} personas</li>
-                        <li><strong>Responsable:</strong> ${lab.responsible}</li>
-                        <li><strong>Email:</strong> ${lab.email}</li>
-                        <li><strong>Teléfono:</strong> ${lab.phone}</li>
+                        <li><strong>📍 Ubicación:</strong> ${lab.location || 'No especificada'}</li>
+                        <li><strong>🔖 Código:</strong> ${lab.code || 'N/A'}</li>
+                        ${lab.capacity ? `<li><strong>👥 Capacidad:</strong> ${lab.capacity} personas</li>` : ''}
+                        <li><strong>✅ Elegible:</strong> ${lab.eligible ? 'Sí, puedes usar este laboratorio' : 'No, requiere capacitación'}</li>
                     </ul>
                     
-                    <h4>Horarios</h4>
-                    <ul>
-                        ${Object.entries(lab.schedule).map(([day, hours]) => 
-                            `<li><strong>${day}:</strong> ${hours}</li>`
-                        ).join('')}
-                    </ul>
+                    ${!lab.eligible ? `
+                        <div class="mt-md" style="padding: 1rem; background: var(--warning-bg); border-radius: 8px; border-left: 4px solid var(--warning);">
+                            <p><strong>⚠️ Capacitación Requerida</strong></p>
+                            <p class="text-secondary">Para acceder a este laboratorio necesitas completar una capacitación previa.</p>
+                        </div>
+                    ` : ''}
                     
-                    <h4>Requisitos</h4>
-                    <ul>
-                        ${lab.requirements.map(req => `<li>${req}</li>`).join('')}
-                    </ul>
+                    <div class="mt-lg">
+                        <button class="btn btn-primary btn-block" onclick="createRequestFromModal()">
+                            Solicitar Reserva
+                        </button>
+                    </div>
                 </div>
             `;
             
             document.getElementById('detailsModal').classList.add('show');
+            document.body.style.overflow = 'hidden'; // Bloquear scroll del body
         };
 
         window.viewResourceDetails = function(id) {
-            const resource = currentResources.find(r => r.id === id);
-            if (!resource) return;
+            console.log('Buscando recurso con id:', id, 'en:', currentResources);
+            const resource = currentResources.find(r => r.id == id); // Usar == para comparación flexible
+            if (!resource) {
+                console.error('Recurso no encontrado. IDs disponibles:', currentResources.map(r => r.id));
+                showNotification('Recurso no encontrado', 'error');
+                return;
+            }
             
             document.getElementById('modalTitle').textContent = resource.name;
             document.getElementById('modalBody').innerHTML = `
                 <div>
-                    <img src="${resource.image}" style="width: 100%; border-radius: 8px; margin-bottom: 1rem;">
-                    <p>${resource.description}</p>
+                    <p class="text-secondary">${resource.description || 'Sin descripción disponible'}</p>
                     
-                    <h4>Información</h4>
+                    <h4 class="mt-lg">📋 Información General</h4>
                     <ul>
-                        <li><strong>Categoría:</strong> ${resource.category}</li>
-                        <li><strong>Laboratorio:</strong> ${resource.lab_name}</li>
-                        <li><strong>Disponibles:</strong> ${resource.quantity_available} de ${resource.quantity_total}</li>
+                        <li><strong>🏷️ Tipo:</strong> ${resource.type || 'N/A'}</li>
+                        <li><strong>🔬 Laboratorio:</strong> ${resource.lab_name || 'N/A'}</li>
+                        ${resource.inventory_code ? `<li><strong>🔖 Código de Inventario:</strong> ${resource.inventory_code}</li>` : ''}
+                        ${resource.location ? `<li><strong>📍 Ubicación:</strong> ${resource.location}</li>` : ''}
+                        <li><strong>📊 Estado:</strong> <span class="badge badge-${
+                            resource.status === 'DISPONIBLE' ? 'success' :
+                            resource.status === 'RESERVADO' ? 'warning' : 
+                            resource.status === 'EN_MANTENIMIENTO' ? 'error' : 'secondary'
+                        }">${resource.status}</span></li>
+                        <li><strong>✅ Elegible:</strong> ${resource.eligible ? 'Sí, puedes solicitar este recurso' : 'No, requiere capacitación'}</li>
+                        ${resource.next_start ? `<li><strong>📅 Próxima disponibilidad:</strong> ${formatDate(resource.next_start)}</li>` : ''}
                     </ul>
                     
-                    <h4>Especificaciones Técnicas</h4>
-                    <ul>
-                        ${Object.entries(resource.technical_specs).map(([key, value]) => 
-                            `<li><strong>${key}:</strong> ${value}</li>`
-                        ).join('')}
-                    </ul>
+                    ${!resource.eligible ? `
+                        <div class="mt-md" style="padding: 1rem; background: var(--warning-bg); border-radius: 8px; border-left: 4px solid var(--warning);">
+                            <p><strong>⚠️ Capacitación Requerida</strong></p>
+                            <p class="text-secondary">Para usar este recurso necesitas completar la capacitación del laboratorio asociado.</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${resource.status !== 'DISPONIBLE' ? `
+                        <div class="mt-md" style="padding: 1rem; background: var(--error-bg); border-radius: 8px; border-left: 4px solid var(--error);">
+                            <p><strong>⛔ No Disponible</strong></p>
+                            <p class="text-secondary">Este recurso no está disponible actualmente. Estado: ${resource.status}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mt-lg">
+                        <button class="btn btn-primary btn-block" 
+                                onclick="createRequestFromModal()"
+                                ${resource.status !== 'DISPONIBLE' ? 'disabled' : ''}>
+                            ${resource.status === 'DISPONIBLE' ? 'Solicitar Recurso' : 'No Disponible'}
+                        </button>
+                    </div>
                 </div>
             `;
             
             document.getElementById('detailsModal').classList.add('show');
+            document.body.style.overflow = 'hidden'; // Bloquear scroll del body
         };
 
         window.closeModal = function() {
             document.getElementById('detailsModal').classList.remove('show');
+            document.body.style.overflow = ''; // Restaurar scroll del body
         };
 
         window.createRequestFromModal = function() {
-            showNotification('Funcionalidad de solicitud en desarrollo', 'info');
             closeModal();
+            window.location.href = './new-request.html';
         };
 
+        // Inicializar filtros según la pestaña activa (labs por defecto)
+        function initializeFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').parentElement;
+            const statusFilter = document.getElementById('statusFilter').parentElement;
+            
+            if (activeTab === 'labs') {
+                categoryFilter.style.display = 'none';
+                statusFilter.style.display = 'none';
+            } else {
+                categoryFilter.style.display = 'block';
+                statusFilter.style.display = 'block';
+            }
+        }
+
         // Cargar datos al iniciar
+        loadUserInfo();
+        initializeFilters();
         loadData();
     </script>
 

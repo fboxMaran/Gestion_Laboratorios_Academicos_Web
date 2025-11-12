@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -166,24 +165,28 @@
         let allLabs = [];
         let allResources = [];
 
-        // Cargar usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                document.getElementById('userName').textContent = profile.name || 'Usuario';
+            } catch (error) {
+                console.error('[NewRequest] Error al cargar perfil:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                }
+            }
         }
 
         // Cargar datos iniciales
         async function loadInitialData() {
+            await loadUserInfo();
             try {
                 // Cargar labs y recursos
                 allLabs = await api.searchLabs();
                 allResources = await api.searchResources();
                 populateLabSelect();
-
-                // Cargar notificaciones
-                const notifications = await api.getNotifications();
-                const unread = notifications.filter(n => !n.read).length;
-                document.getElementById('notificationCount').textContent = unread;
 
                 // Set fecha mínima a hoy
                 const today = new Date().toISOString().split('T')[0];
@@ -204,7 +207,7 @@
         }
 
         // Cambio de laboratorio -> cargar recursos
-        document.getElementById('requestLab').addEventListener('change', (e) => {
+        document.getElementById('requestLab').addEventListener('change', async (e) => {
             const labId = parseInt(e.target.value);
             const resourceSelect = document.getElementById('requestResource');
             
@@ -213,21 +216,28 @@
                 return;
             }
 
-            // Filtrar recursos del laboratorio seleccionado
-            const labResources = allResources.filter(r => r.lab_id === labId);
-            
-            if (labResources.length === 0) {
-                resourceSelect.innerHTML = '<option value="">No hay recursos disponibles en este laboratorio</option>';
-                return;
-            }
+            try {
+                // Cargar recursos del laboratorio seleccionado desde el backend
+                const labResources = await api.searchResources({ lab_id: labId });
+                
+                if (labResources.length === 0) {
+                    resourceSelect.innerHTML = '<option value="">No hay recursos disponibles en este laboratorio</option>';
+                    return;
+                }
 
-            resourceSelect.innerHTML = '<option value="">Seleccione un recurso</option>' +
-                labResources.map(res => {
-                    const availability = res.quantity_available > 0 ? 
-                        `(${res.quantity_available}/${res.quantity_total} disponibles)` : 
-                        '(No disponible)';
-                    return `<option value="${res.id}">${res.name} ${availability}</option>`;
-                }).join('');
+                resourceSelect.innerHTML = '<option value="">Seleccione un recurso</option>' +
+                    labResources
+                        .filter(res => res.status === 'DISPONIBLE') // Solo recursos disponibles
+                        .map(res => `<option value="${res.id}">${res.name} - ${res.type}</option>`)
+                        .join('');
+                        
+                if (resourceSelect.options.length === 1) {
+                    resourceSelect.innerHTML += '<option value="" disabled>Todos los recursos están ocupados</option>';
+                }
+            } catch (error) {
+                console.error('Error al cargar recursos:', error);
+                resourceSelect.innerHTML = '<option value="">Error al cargar recursos</option>';
+            }
         });
 
         // Validar fecha fin
@@ -240,39 +250,61 @@
         document.getElementById('newRequestForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const formData = {
-                lab_id: parseInt(document.getElementById('requestLab').value),
-                resource_id: parseInt(document.getElementById('requestResource').value),
-                date_from: document.getElementById('requestDateFrom').value,
-                date_to: document.getElementById('requestDateTo').value,
-                time_from: document.getElementById('requestTimeFrom').value,
-                time_to: document.getElementById('requestTimeTo').value,
-                purpose: document.getElementById('requestPurpose').value,
-                notes: document.getElementById('requestNotes').value
-            };
+            const labId = parseInt(document.getElementById('requestLab').value);
+            const resourceId = parseInt(document.getElementById('requestResource').value);
+            const dateFrom = document.getElementById('requestDateFrom').value;
+            const dateTo = document.getElementById('requestDateTo').value;
+            const timeFrom = document.getElementById('requestTimeFrom').value;
+            const timeTo = document.getElementById('requestTimeTo').value;
+            const purpose = document.getElementById('requestPurpose').value;
+            const notes = document.getElementById('requestNotes').value;
 
             // Validación de fechas
-            if (formData.date_to < formData.date_from) {
+            if (dateTo < dateFrom) {
                 showNotification('La fecha de fin debe ser posterior a la fecha de inicio', 'error');
                 return;
             }
 
             // Validación de horas si es el mismo día
-            if (formData.date_from === formData.date_to && formData.time_to <= formData.time_from) {
+            if (dateFrom === dateTo && timeTo <= timeFrom) {
                 showNotification('La hora de fin debe ser posterior a la hora de inicio', 'error');
                 return;
             }
 
+            // Construir timestamps ISO
+            const requestedFrom = `${dateFrom}T${timeFrom}:00`;
+            const requestedTo = `${dateTo}T${timeTo}:00`;
+
+            // Obtener datos del usuario actual
+            const currentUser = getCurrentUser();
+            
+            const requestData = {
+                lab_id: labId,
+                purpose: purpose,
+                requester_role: currentUser?.role || 'Estudiante',
+                user_id: currentUser?.id,
+                starts_at: requestedFrom,
+                ends_at: requestedTo,
+                reason: purpose,
+                items: [
+                    {
+                        resource_id: resourceId,
+                        qty: 1
+                    }
+                ]
+            };
+
             try {
-                await api.createRequest(formData);
+                const response = await api.createRequest(requestData);
                 showNotification('Solicitud creada exitosamente', 'success');
+                console.log('Solicitud creada:', response);
                 // Redirigir a la página de solicitudes después de 1 segundo
                 setTimeout(() => {
                     window.location.href = './requests.html';
                 }, 1000);
             } catch (error) {
                 console.error('Error al crear solicitud:', error);
-                showNotification('Error al crear la solicitud', 'error');
+                showNotification(error.message || 'Error al crear la solicitud', 'error');
             }
         });
 

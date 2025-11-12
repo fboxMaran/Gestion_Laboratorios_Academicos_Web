@@ -83,8 +83,8 @@ const AdminReportsController = {
       WITH reqs AS (
         SELECT ${groupExpr(groupBy, tsRequests).expr} AS bucket,
                COUNT(*)::int AS reservas
-          FROM requests r
-          JOIN labs l1 ON l1.id = r.lab_id
+          FROM request r
+          JOIN lab l1 ON l1.id = r.lab_id
          WHERE r.status = 'APROBADA' ${wReq} ${labFilterReq} ${deptFilterReq}
          GROUP BY 1
       ),
@@ -92,7 +92,7 @@ const AdminReportsController = {
         SELECT ${groupExpr(groupBy, tsAssigns).expr} AS bucket,
                COUNT(*)::int AS prestamos
           FROM resource_assignments ra
-          JOIN labs l2 ON l2.id = ra.lab_id
+          JOIN lab l2 ON l2.id = ra.lab_id
          WHERE 1=1 ${wAsg} ${labFilterAsg} ${deptFilterAsg}
          GROUP BY 1
       ),
@@ -100,7 +100,7 @@ const AdminReportsController = {
         SELECT ${groupExpr(groupBy, tsMaint).expr} AS bucket,
                COUNT(*)::int AS mantenimientos
           FROM maintenance_orders mo
-          JOIN labs l3 ON l3.id = mo.lab_id
+          JOIN lab l3 ON l3.id = mo.lab_id
          WHERE mo.status = 'COMPLETADO' ${wMt} ${labFilterMo} ${deptFilterMo}
          GROUP BY 1
       )
@@ -164,9 +164,9 @@ const AdminReportsController = {
       WITH inv AS (
         SELECT l.id AS lab_id, l.name AS lab_name, d.id AS department_id, d.name AS department_name,
                r.status, COUNT(*)::int AS total
-          FROM resources r
-          JOIN labs l ON l.id = r.lab_id
-          JOIN departments d ON d.id = l.department_id
+          FROM resource r
+          JOIN lab l ON l.id = r.lab_id
+          JOIN school_department d ON d.id = l.department_id
          WHERE 1=1
            ${labId ? ' AND l.id = $1' : ''}
            ${deptId ? (labId ? ' AND d.id = $2' : ' AND d.id = $1') : ''}
@@ -174,9 +174,9 @@ const AdminReportsController = {
         UNION ALL
         SELECT l.id AS lab_id, l.name AS lab_name, d.id AS department_id, d.name AS department_name,
                rf.status, COUNT(*)::int AS total
-          FROM resources_fixed rf
-          JOIN labs l ON l.id = rf.lab_id
-          JOIN departments d ON d.id = l.department_id
+          FROM resource rf
+          JOIN lab l ON l.id = rf.lab_id
+          JOIN school_department d ON d.id = l.department_id
          WHERE 1=1
            ${labId ? ' AND l.id = $1' : ''}
            ${deptId ? (labId ? ' AND d.id = $2' : ' AND d.id = $1') : ''}
@@ -214,8 +214,8 @@ const AdminReportsController = {
              c.id AS consumable_id, c.name AS consumable_name, c.unit,
              SUM(mc.qty)::numeric AS total_qty
         FROM material_consumptions mc
-        JOIN labs l ON l.id = mc.lab_id
-        JOIN departments d ON d.id = l.department_id
+        JOIN lab l ON l.id = mc.lab_id
+        JOIN school_department d ON d.id = l.department_id
         JOIN consumables c ON c.id = mc.consumable_id
        WHERE 1=1 ${where}
          ${labId ? ` AND l.id = $${params.length + 1}` : ''}
@@ -251,9 +251,9 @@ const AdminReportsController = {
              SUM(CASE WHEN r.status='APROBADA' THEN 1 ELSE 0 END)::int AS approved,
              SUM(CASE WHEN r.status='RECHAZADA' THEN 1 ELSE 0 END)::int AS rejected,
              COUNT(*)::int AS total_processed
-        FROM requests r
-        JOIN labs l ON l.id = r.lab_id
-        JOIN departments d ON d.id = l.department_id
+        FROM request r
+        JOIN lab l ON l.id = r.lab_id
+        JOIN school_department d ON d.id = l.department_id
        WHERE 1=1 ${wReq}
          ${labId ? ` AND l.id = $${pReq.length + 1}` : ''}
          ${deptId ? ` AND d.id = $${pReq.length + 1 + (labId ? 1 : 0)}` : ''}
@@ -281,8 +281,8 @@ const AdminReportsController = {
         SELECT cs.id, cs.lab_id, cs.status, cs.starts_at, cs.ends_at,
                l.id as lab_id2, l.name as lab_name, d.id as department_id, d.name as department_name
           FROM calendar_slots cs
-          JOIN labs l ON l.id = cs.lab_id
-          JOIN departments d ON d.id = l.department_id
+          JOIN lab l ON l.id = cs.lab_id
+          JOIN school_department d ON d.id = l.department_id
           JOIN rng ON cs.ends_at > rng.from_ts AND cs.starts_at < rng.to_ts
          WHERE 1=1 ${slotLabPh} ${slotDeptPh}
       ),

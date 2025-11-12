@@ -16,7 +16,6 @@
             </div>
             <div class="navbar-menu">
                 <a href="./notifications.html" class="navbar-notifications">
-                    <span class="notification-badge">3</span>
                     🔔
                 </a>
                 <div class="navbar-user">
@@ -195,12 +194,27 @@
         // Hacer logout disponible globalmente
         window.logout = authLogout;
 
-        // Cargar datos del usuario
-        const user = getCurrentUser();
-        if (user) {
-            document.getElementById('userName').textContent = user.name;
-            document.getElementById('userNameTitle').textContent = user.name;
+        // Cargar datos del usuario desde el API
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                const displayName = profile.name || 'Usuario';
+                document.getElementById('userName').textContent = displayName;
+                document.getElementById('userNameTitle').textContent = displayName;
+            } catch (error) {
+                console.error('[Dashboard] Error al cargar perfil:', error);
+                // Fallback al usuario en localStorage
+                const user = getCurrentUser();
+                if (user) {
+                    const displayName = user.name || 'Usuario';
+                    document.getElementById('userName').textContent = displayName;
+                    document.getElementById('userNameTitle').textContent = displayName;
+                }
+            }
         }
+        
+        // Cargar perfil al inicio
+        loadUserInfo();
 
         // Cargar estadísticas
         async function loadDashboard() {
@@ -208,19 +222,23 @@
                 // Cargar solicitudes
                 const requests = await api.getRequests();
                 
-                // Calcular estadísticas
-                const pending = requests.filter(r => r.status === 'pending').length;
-                const approved = requests.filter(r => r.status === 'approved').length;
+                // Calcular estadísticas de solicitudes (comparar en mayúsculas porque la BD usa PENDIENTE, APROBADA, etc.)
+                const pending = requests.filter(r => r.status && r.status.toUpperCase() === 'PENDIENTE').length;
+                const approved = requests.filter(r => r.status && r.status.toUpperCase() === 'APROBADA').length;
                 
                 document.getElementById('pendingRequests').textContent = pending;
                 document.getElementById('approvedRequests').textContent = approved;
                 
-                // Cargar historial para estadísticas
-                const history = await api.getHistory();
-                const reservations = history.filter(h => h.type === 'reservation').length;
-                const trainings = history.filter(h => h.type === 'training').length;
+                // Total de reservas = todas las solicitudes
+                document.getElementById('totalReservations').textContent = requests.length;
                 
-                document.getElementById('totalReservations').textContent = reservations;
+                // Cargar historial para estadísticas de capacitaciones
+                const history = await api.getHistory();
+                // Contar certificaciones/capacitaciones (type = 'training' o 'certification')
+                const trainings = history.filter(h => 
+                    h.type === 'training' || h.type === 'certification'
+                ).length;
+                
                 document.getElementById('trainingsCompleted').textContent = trainings;
                 
                 // Mostrar solicitudes recientes
@@ -273,8 +291,21 @@
                 return;
             }
             
+            // Mapear tipos de notificación a colores de alerta
+            const typeToAlertClass = (type) => {
+                const typeMap = {
+                    'solicitud_aprobada': 'success',
+                    'solicitud_rechazada': 'error',
+                    'recordatorio_devolucion': 'warning',
+                    'mantenimiento_programado': 'info',
+                    'capacitacion_disponible': 'info',
+                    'solicitud_pendiente': 'warning'
+                };
+                return typeMap[type] || 'info';
+            };
+            
             container.innerHTML = notifications.map(notif => `
-                <div class="alert alert-${notif.type}">
+                <div class="alert alert-${typeToAlertClass(notif.type)}">
                     <strong>${notif.title}</strong>
                     <p>${notif.message}</p>
                     <small class="text-secondary">${formatDate(notif.created_at, 'DD/MM/YYYY HH:mm')}</small>

@@ -1,5 +1,5 @@
 // apps/api/src/controllers/departments.controller.js
-const Departments = require('../models/departments.model');
+const school_department = require('../models/departments.model');
 
 const DepartmentsController = {
   async create(req, res, next) {
