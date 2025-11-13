@@ -1,7 +1,7 @@
 const { pool } = require('../db/pool');
 const bcrypt = require('bcryptjs');
 
-const ALLOWED_DOMAINS = ['estudiantec.cr', 'itcr.ac.cr'];
+const ALLOWED_DOMAINS = ['estudiantec.cr', 'tec.ac.cr', 'itcr.ac.cr'];
 
 function emailDomainOk(email) {
   const m = String(email || '').toLowerCase().match(/@([^@]+)$/);
@@ -16,7 +16,7 @@ const AuthModel = {
       const e = new Error('role, email, password y full_name son obligatorios'); e.status = 400; throw e;
     }
     if (!emailDomainOk(email)) {
-      const e = new Error('Correo debe ser institucional (@estudiantec.cr o @itcr.ac.cr)'); e.status = 400; throw e;
+      const e = new Error('Correo debe ser institucional (@estudiantec.cr, @tec.ac.cr o @itcr.ac.cr)'); e.status = 400; throw e;
     }
     
     const client = await pool.connect();

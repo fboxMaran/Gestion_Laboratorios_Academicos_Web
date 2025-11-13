@@ -597,10 +597,10 @@ SELECT setval('school_department_id_seq', 5, true);
 -- NOTA: Contraseña para todos: "demo123" (hash bcrypt)
 -- --------------------------------------------------------------------------------
 INSERT INTO app_user (id, full_name, email, institutional, role_id, school_dept_id, career_or_dept, id_code, phone, is_active, email_verified) VALUES
-(1, 'Juan Pablo Cambronero', 'usuario@demo.edu', TRUE, 1, 1, 'Ingeniería en Computación', '2021012345', '8333-3333', TRUE, TRUE),
-(2, 'Dr. Carlos Ramirez Lopez', 'profesor@itcr.ac.cr', TRUE, 2, 1, 'Departamento de Computacion', 'DOC2020001', '8888-2222', TRUE, TRUE),
-(3, 'Juan Tecnico Mora', 'tecnico@demo.edu', TRUE, 3, 1, 'Departamento de Computacion', 'TEC2019001', '8888-3333', TRUE, TRUE),
-(4, 'Ana Admin Castro', 'admin@itcr.ac.cr', TRUE, 4, NULL, 'Administracion General', 'ADM2018001', '8888-4444', TRUE, TRUE),
+(1, 'Juan Pablo Cambronero', 'jcambronero@estudiantec.cr', TRUE, 1, 1, 'Ingeniería en Computación', '2021012345', '8333-3333', TRUE, TRUE),
+(2, 'Dr. Carlos Ramirez Lopez', 'cramirez@tec.ac.cr', TRUE, 2, 1, 'Departamento de Computacion', 'DOC2020001', '8888-2222', TRUE, TRUE),
+(3, 'Juan Tecnico Mora', 'jtecnico@tec.ac.cr', TRUE, 3, 1, 'Departamento de Computacion', 'TEC2019001', '8888-3333', TRUE, TRUE),
+(4, 'Ana Admin Castro', 'aadmin@tec.ac.cr', TRUE, 4, NULL, 'Administracion General', 'ADM2018001', '8888-4444', TRUE, TRUE),
 (5, 'Maria Gonzalez Perez', 'mgonzalez@estudiantec.cr', TRUE, 1, 2, 'Ingeniería Electrónica', '2022045678', '8777-1234', TRUE, TRUE),
 (6, 'Pedro Jimenez Vargas', 'pjimenez@estudiantec.cr', TRUE, 1, 1, 'Ingeniería en Computación', '2021098765', '8666-5678', TRUE, TRUE),
 (7, 'Dra. Sofia Morales', 'smorales@itcr.ac.cr', TRUE, 2, 3, 'Departamento de Quimica', 'DOC2019045', '8555-9876', TRUE, TRUE),
