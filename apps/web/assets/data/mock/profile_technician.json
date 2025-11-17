@@ -5,6 +5,7 @@
   "phone": "+506 8888-2222",
   "department": "Laboratorio de Electrónica",
   "position": "Técnico de Laboratorio",
+  "role": "technician",
   "status": "active",
   "bio": "Encargado del mantenimiento y supervisión del laboratorio de electrónica.",
   "trainings_completed": 12,

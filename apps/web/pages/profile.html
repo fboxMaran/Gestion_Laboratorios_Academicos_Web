@@ -28,43 +28,8 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <ul class="sidebar-menu">
-            <li class="sidebar-item">
-                <a href="./dashboard.html">
-                    <span class="sidebar-icon">🏠</span>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./search.html">
-                    <span class="sidebar-icon">🔍</span>
-                    <span>Buscar Recursos</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./requests.html">
-                    <span class="sidebar-icon">📋</span>
-                    <span>Mis Solicitudes</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./history.html">
-                    <span class="sidebar-icon">📚</span>
-                    <span>Historial</span>
-                </a>
-            </li>
-            <li class="sidebar-item active">
-                <a href="./profile.html">
-                    <span class="sidebar-icon">👤</span>
-                    <span>Mi Perfil</span>
-                </a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./notifications.html">
-                    <span class="sidebar-icon">🔔</span>
-                    <span>Notificaciones</span>
-                </a>
-            </li>
+        <ul id="sidebarMenu" class="sidebar-menu">
+           
         </ul>
     </aside>
 
@@ -185,231 +150,238 @@
     </main>
 
     <script type="module">
-        import api from '../assets/js/api.js';
-        import { formatDate, showNotification } from '../assets/js/utils.js';
-        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+import api from '../assets/js/api.js';
+import { formatDate, showNotification } from '../assets/js/utils.js';
+import { requireAuth, logout as authLogout } from '../assets/js/auth.js';
 
-        // Verificar autenticación
-        requireAuth();
+// AUTENTICACIÓN
+requireAuth();
+window.logout = authLogout;
 
-        // Hacer logout disponible globalmente
-        window.logout = authLogout;
+// SIDEBAR DINÁMICO — AHORA BASADO EN api.getProfile()
+function renderSidebar(role) {
+    console.log("entre",role);
+    const sidebar = document.getElementById("sidebarMenu");
 
-        // Variables globales
-        let originalData = {};
-        let isEditMode = false;
+    if (role === "technician") {
 
-        // Cargar información del usuario
-        async function loadUserInfo() {
-            try {
-                const profile = await api.getProfile();
-                const userName = profile.name || 'Usuario';
-                
-                // Actualizar nombre en el navbar
-                document.getElementById('userName').textContent = userName;
-                
-                // Actualizar nombre en el header del perfil
-                document.getElementById('profileHeaderName').textContent = userName;
-                
-                return profile;
-            } catch (error) {
-                console.error('[Profile] Error al cargar información del usuario:', error);
-                const user = getCurrentUser();
-                if (user) {
-                    document.getElementById('userName').textContent = user.name;
-                    document.getElementById('profileHeaderName').textContent = user.name;
-                }
-                throw error;
-            }
+        sidebar.innerHTML = `
+            <li class="sidebar-item">
+                <a href="./search-tech.html">📋 Solicitudes Aprobadas</a>
+            </li>
+            <li class="sidebar-item">
+                <a href=".inventory.html">📦 Inventario</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./maintenance.html">🧰 Mantenimientos</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="../reports.html">📊 Reportes</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">🔔 Notificaciones</a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./profile.html">👤 Mi Perfil</a>
+            </li>
+        `;
+
+        document.querySelector(".navbar-brand h2").textContent = "🔧 Panel Técnico";
+
+    } else {
+
+        sidebar.innerHTML = `
+            <li class="sidebar-item">
+                <a href="./dashboard.html">🏠 Dashboard</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./search.html">🔍 Buscar Recursos</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./requests.html">📋 Mis Solicitudes</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">📚 Historial</a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./profile.html">👤 Mi Perfil</a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./notifications.html">🔔 Notificaciones</a>
+            </li>
+        `;
+
+        document.querySelector(".navbar-brand h2").textContent = "🔬 Gestión de Laboratorios";
+    }
+}
+
+// VARIABLES
+let originalData = {};
+let isEditMode = false;
+
+// CARGAR PERFIL COMPLETO
+async function loadProfile() {
+    try {        
+        // ←–––––––––––––––––––––––––––––––
+        const profile = await api.getProfile();     // USAMOS LA API REAL
+        console.log(profile);
+        // –––––––––––––––––––––––––––––––→
+
+        // Sidebar ahora se genera con el rol real del usuario
+        renderSidebar(profile.role);
+
+        document.getElementById('userName').textContent = profile.name;
+        document.getElementById('profileHeaderName').textContent = profile.name;
+
+        document.getElementById('fullName').value = profile.name || 'N/A';
+        document.getElementById('studentId').value = profile.student_id || profile.id || 'N/A';
+        document.getElementById('email').value = profile.email || 'N/A';
+        document.getElementById('phone').value = profile.phone || '';
+        document.getElementById('department').value = profile.department || '';
+        document.getElementById('role').value = profile.role;
+
+        originalData = { ...profile };
+
+        await loadStatistics();
+        await loadRecentActivity();
+
+    } catch (error) {
+        console.error('[Profile] Error cargando perfil:', error);
+        showNotification('No se pudo cargar el perfil', 'error');
+    }
+}
+
+// ESTADÍSTICAS
+async function loadStatistics() {
+    try {
+        const requests = await api.getRequests();
+        document.getElementById('totalRequests').textContent = requests.length;
+
+        const history = await api.getHistory();
+        document.getElementById('totalReservations').textContent =
+            history.filter(h => h.type === 'reservation').length;
+
+        document.getElementById('totalTrainings').textContent =
+            history.filter(h => h.type === 'training').length;
+
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
+
+// ACTIVIDAD RECIENTE
+async function loadRecentActivity() {
+    try {
+        const history = await api.getHistory();
+        const requests = await api.getRequests();
+
+        const allActivity = [
+            ...history.map(h => ({
+                type: h.type === 'reservation' ? '📚 Reserva' : '🎓 Capacitación',
+                description: h.resource_name || h.title,
+                date: h.date,
+                status: h.status
+            })),
+            ...requests.map(r => ({
+                type: '📋 Solicitud',
+                description: r.resource_name,
+                date: r.created_at,
+                status: r.status
+            }))
+        ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+        const tbody = document.getElementById('recentActivity');
+
+        if (allActivity.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay actividad reciente</td></tr>';
+            return;
         }
 
-        // Cargar perfil
-        async function loadProfile() {
-            try {
-                console.log('[Profile] Cargando perfil del usuario...');
-                
-                // Cargar datos del perfil
-                const profile = await loadUserInfo();
-                console.log('[Profile] Perfil recibido:', profile);
+        tbody.innerHTML = allActivity.map(a => `
+            <tr>
+                <td>${a.type}</td>
+                <td>${a.description}</td>
+                <td>${formatDate(a.date, 'DD/MM/YYYY')}</td>
+                <td><span class="badge badge-${a.status}">${getStatusText(a.status)}</span></td>
+            </tr>
+        `).join('');
 
-                // Llenar formulario
-                document.getElementById('fullName').value = profile.name || 'N/A';
-                document.getElementById('studentId').value = profile.student_id || profile.id || 'N/A';
-                document.getElementById('email').value = profile.email || 'N/A';
-                document.getElementById('phone').value = profile.phone || '';
-                document.getElementById('department').value = profile.department || '';
-                document.getElementById('role').value = profile.role || 'N/A';
+    } catch (error) {
+        console.error('Error al cargar actividad reciente:', error);
+    }
+}
 
-                // Guardar datos originales
-                originalData = { ...profile };
-                console.log('[Profile] Datos originales guardados');
+function getStatusText(status) {
+    const map = {
+        pending: 'Pendiente',
+        approved: 'Aprobada',
+        rejected: 'Rechazada',
+        completed: 'Completada',
+        cancelled: 'Cancelada',
+        'no-show': 'No asistió'
+    };
+    return map[status] || status;
+}
 
-                // Cargar estadísticas
-                await loadStatistics();
+// MODO EDICIÓN
+window.toggleEditMode = function() {
+    isEditMode = !isEditMode;
 
-                // Cargar actividad reciente
-                await loadRecentActivity();
+    const fields = ['fullName', 'studentId', 'email', 'phone', 'department'];
+    const editBtn = document.getElementById('editBtn');
+    const formActions = document.getElementById('formActions');
 
-            } catch (error) {
-                console.error('[Profile] Error al cargar perfil:', error);
-                showNotification('Error al cargar información del perfil', 'error');
-            }
-        }
-
-        // Cargar estadísticas
-        async function loadStatistics() {
-            try {
-                // Cargar solicitudes
-                const requests = await api.getRequests();
-                document.getElementById('totalRequests').textContent = requests.length;
-
-                // Cargar historial
-                const history = await api.getHistory();
-                const reservations = history.filter(h => h.type === 'reservation').length;
-                const trainings = history.filter(h => h.type === 'training').length;
-                
-                document.getElementById('totalReservations').textContent = reservations;
-                document.getElementById('totalTrainings').textContent = trainings;
-
-            } catch (error) {
-                console.error('Error al cargar estadísticas:', error);
-            }
-        }
-
-        // Cargar actividad reciente (últimas 5 actividades)
-        async function loadRecentActivity() {
-            try {
-                const history = await api.getHistory();
-                const requests = await api.getRequests();
-
-                // Combinar y ordenar por fecha
-                const allActivity = [
-                    ...history.map(h => ({
-                        type: h.type === 'reservation' ? '📚 Reserva' : '🎓 Capacitación',
-                        description: h.resource_name || h.title,
-                        date: h.date,
-                        status: h.status
-                    })),
-                    ...requests.map(r => ({
-                        type: '📋 Solicitud',
-                        description: r.resource_name,
-                        date: r.created_at,
-                        status: r.status
-                    }))
-                ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-
-                const tbody = document.getElementById('recentActivity');
-                
-                if (allActivity.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay actividad reciente</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = allActivity.map(activity => `
-                    <tr>
-                        <td>${activity.type}</td>
-                        <td>${activity.description}</td>
-                        <td>${formatDate(activity.date, 'DD/MM/YYYY')}</td>
-                        <td>
-                            <span class="badge badge-${activity.status}">
-                                ${getStatusText(activity.status)}
-                            </span>
-                        </td>
-                    </tr>
-                `).join('');
-
-            } catch (error) {
-                console.error('Error al cargar actividad reciente:', error);
-            }
-        }
-
-        function getStatusText(status) {
-            const statusMap = {
-                'pending': 'Pendiente',
-                'approved': 'Aprobada',
-                'rejected': 'Rechazada',
-                'completed': 'Completada',
-                'cancelled': 'Cancelada',
-                'no-show': 'No asistió'
-            };
-            return statusMap[status] || status;
-        }
-
-        // Modo de edición
-        window.toggleEditMode = function() {
-            isEditMode = !isEditMode;
-            
-            const fields = ['fullName', 'studentId', 'email', 'phone', 'department'];
-            const editBtn = document.getElementById('editBtn');
-            const formActions = document.getElementById('formActions');
-
-            if (isEditMode) {
-                // Activar modo edición
-                fields.forEach(field => {
-                    const input = document.getElementById(field);
-                    if (field !== 'email' && field !== 'studentId') { // Email y carné no se pueden editar
-                        input.disabled = false;
-                    }
-                });
-                editBtn.style.display = 'none';
-                formActions.style.display = 'flex';
-            } else {
-                // Desactivar modo edición
-                fields.forEach(field => {
-                    document.getElementById(field).disabled = true;
-                });
-                editBtn.style.display = 'inline-block';
-                formActions.style.display = 'none';
-            }
-        };
-
-        window.cancelEdit = function() {
-            // Restaurar datos originales
-            document.getElementById('fullName').value = originalData.name;
-            document.getElementById('phone').value = originalData.phone || '';
-            document.getElementById('department').value = originalData.department || '';
-            
-            toggleEditMode();
-        };
-
-        // Guardar cambios del perfil
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            try {
-                console.log('[Profile] Guardando cambios...');
-                
-                const updatedData = {
-                    name: document.getElementById('fullName').value.trim(),
-                    phone: document.getElementById('phone').value.trim(),
-                    department: document.getElementById('department').value
-                };
-
-                console.log('[Profile] Datos a enviar:', updatedData);
-
-                const result = await api.updateProfile(updatedData);
-                console.log('[Profile] Respuesta del servidor:', result);
-                
-                // Actualizar datos originales
-                originalData = { ...originalData, ...updatedData };
-                
-                // Actualizar nombre en el header y navbar
-                document.getElementById('profileHeaderName').textContent = updatedData.name;
-                document.getElementById('userName').textContent = updatedData.name;
-
-                showNotification('Perfil actualizado exitosamente', 'success');
-                toggleEditMode();
-
-            } catch (error) {
-                console.error('[Profile] Error al actualizar perfil:', error);
-                showNotification('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'), 'error');
-            }
+    if (isEditMode) {
+        fields.forEach(field => {
+            const input = document.getElementById(field);
+            if (field !== 'email' && field !== 'studentId') input.disabled = false;
         });
+        editBtn.style.display = 'none';
+        formActions.style.display = 'flex';
+    } else {
+        fields.forEach(field => document.getElementById(field).disabled = true);
+        editBtn.style.display = 'inline-block';
+        formActions.style.display = 'none';
+    }
+};
 
-        // Cargar perfil al iniciar la página
-        loadProfile();
+window.cancelEdit = function() {
+    document.getElementById('fullName').value = originalData.name;
+    document.getElementById('phone').value = originalData.phone || '';
+    document.getElementById('department').value = originalData.department || '';
+    toggleEditMode();
+};
 
-    </script>
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+        const updatedData = {
+            name: document.getElementById('fullName').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            department: document.getElementById('department').value
+        };
+
+        await api.updateProfile(updatedData);
+
+        originalData = { ...originalData, ...updatedData };
+
+        document.getElementById('profileHeaderName').textContent = updatedData.name;
+        document.getElementById('userName').textContent = updatedData.name;
+
+        showNotification('Perfil actualizado exitosamente', 'success');
+        toggleEditMode();
+
+    } catch (error) {
+        console.error('[Profile] Error al actualizar perfil:', error);
+        showNotification('Error al actualizar el perfil', 'error');
+    }
+});
+
+// INICIO
+loadProfile();
+</script>
+
 
     <style>
         .navbar {
