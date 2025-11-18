@@ -28,11 +28,45 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <ul id="sidebarMenu" class="sidebar-menu">
-            <!-- El JS insertará los items según el rol -->
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Mis Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./history.html">
+                    <span class="sidebar-icon">📚</span>
+                    <span>Historial</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </a>
+            </li>
         </ul>
     </aside>
-
 
     <!-- Main Content -->
     <main class="main-content">
@@ -133,96 +167,12 @@
         // Variables globales
         let allNotifications = [];
         let currentFilter = 'all';
-function renderSidebar(role) {
-    const sidebar = document.getElementById("sidebarMenu");
-
-    if (!sidebar) {
-        console.error("❌ ERROR: sidebarMenu no existe en el HTML");
-        return;
-    }
-
-    // Sidebar para técnicos
-    if (role === "technician") {
-         sidebar.innerHTML = `
-            <li class="sidebar-item">
-                <a href="./search-tech.html">📋 Solicitudes Aprobadas</a>
-            </li>
-            <li class="sidebar-item">
-                <a href=".inventory.html">📦 Inventario</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./maintenance.html">🧰 Mantenimientos</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="../reports.html">📊 Reportes</a>
-            </li>
-            <li class="sidebar-item active">
-                <a href="./notifications.html">🔔 Notificaciones</a>
-            </li>
-            <li class="sidebar-item">
-                <a href="./profile.html">👤 Mi Perfil</a>
-            </li>
-        `;
-
-        document.querySelector(".navbar-brand h2").textContent = "🔧 Panel Técnico";
-
-        return;
-    }
-
-        //  Sidebar para usuarios normales
-        sidebar.innerHTML = `
-            <li class="sidebar-item">
-                <a href="./dashboard.html">
-                    <span class="sidebar-icon">🏠</span>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-
-            <li class="sidebar-item">
-                <a href="./search.html">
-                    <span class="sidebar-icon">🔍</span>
-                    <span>Buscar Recursos</span>
-                </a>
-            </li>
-
-            <li class="sidebar-item">
-                <a href="./requests.html">
-                    <span class="sidebar-icon">📋</span>
-                    <span>Mis Solicitudes</span>
-                </a>
-            </li>
-
-            <li class="sidebar-item">
-                <a href="./history.html">
-                    <span class="sidebar-icon">📚</span>
-                    <span>Historial</span>
-                </a>
-            </li>
-
-            <li class="sidebar-item">
-                <a href="./profile.html">
-                    <span class="sidebar-icon">👤</span>
-                    <span>Mi Perfil</span>
-                </a>
-            </li>
-
-            <li class="sidebar-item active">
-                <a href="./notifications.html">
-                    <span class="sidebar-icon">🔔</span>
-                    <span>Notificaciones</span>
-                </a>
-            </li>
-        `;
-
-        document.querySelector(".navbar-brand h2").textContent = "🔬 Gestión de Laboratorios";
-    }
 
         // Cargar usuario desde la API
         async function loadUserInfo() {
             try {
                 const profile = await api.getProfile();
                 document.getElementById('userName').textContent = profile.name || 'Usuario';
-                renderSidebar(profile.role);
             } catch (error) {
                 console.error('Error al cargar usuario:', error);
                 // Fallback al localStorage si falla la API

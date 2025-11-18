@@ -354,6 +354,89 @@ class RealAPI {
         return this.request(endpoint, { method: 'GET' });
     }
 
+    // Availability & Resources (Módulo 1.2)
+    async getAvailabilitySlots(labId, params = {}) {
+        const queryParams = new URLSearchParams(params);
+        const endpoint = API_CONFIG.ENDPOINTS.AVAILABILITY_SLOTS.replace(':labId', labId);
+        return this.request(`${endpoint}?${queryParams}`);
+    }
+
+    async createAvailabilitySlot(labId, slotData) {
+        const endpoint = API_CONFIG.ENDPOINTS.AVAILABILITY_SLOTS.replace(':labId', labId);
+        return this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(slotData)
+        });
+    }
+
+    async updateAvailabilitySlotStatus(slotId, status, userId) {
+        const endpoint = API_CONFIG.ENDPOINTS.AVAILABILITY_SLOT_STATUS.replace(':id', slotId);
+        return this.request(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify({ status, user_id: userId })
+        });
+    }
+
+    async deleteAvailabilitySlot(slotId) {
+        const endpoint = API_CONFIG.ENDPOINTS.AVAILABILITY_SLOT_DELETE.replace(':id', slotId);
+        return this.request(endpoint, { method: 'DELETE' });
+    }
+
+    async getAvailabilitySubscriptions(userId) {
+        return this.request(`${API_CONFIG.ENDPOINTS.AVAILABILITY_SUBSCRIPTIONS}?user_id=${userId}`);
+    }
+
+    async createAvailabilitySubscription(subscriptionData) {
+        return this.request(API_CONFIG.ENDPOINTS.AVAILABILITY_SUBSCRIPTIONS, {
+            method: 'POST',
+            body: JSON.stringify(subscriptionData)
+        });
+    }
+
+    async deleteAvailabilitySubscription(subscriptionId) {
+        const endpoint = API_CONFIG.ENDPOINTS.AVAILABILITY_SUBSCRIPTION_DELETE.replace(':id', subscriptionId);
+        return this.request(endpoint, { method: 'DELETE' });
+    }
+
+    async getAvailabilityChangelog(params = {}) {
+        const queryParams = new URLSearchParams(params);
+        return this.request(`${API_CONFIG.ENDPOINTS.AVAILABILITY_CHANGELOG}?${queryParams}`);
+    }
+
+    async getResources(params = {}) {
+        const queryParams = new URLSearchParams(params);
+        return this.request(`${API_CONFIG.ENDPOINTS.RESOURCES}?${queryParams}`);
+    }
+
+    async getResource(id) {
+        const endpoint = API_CONFIG.ENDPOINTS.RESOURCE_DETAIL.replace(':id', id);
+        return this.request(endpoint);
+    }
+
+    async createResource(resourceData) {
+        return this.request(API_CONFIG.ENDPOINTS.RESOURCES, {
+            method: 'POST',
+            body: JSON.stringify(resourceData)
+        });
+    }
+
+    async updateResource(id, resourceData) {
+        const endpoint = API_CONFIG.ENDPOINTS.RESOURCE_DETAIL.replace(':id', id);
+        return this.request(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(resourceData)
+        });
+    }
+
+    async deleteResource(id) {
+        const endpoint = API_CONFIG.ENDPOINTS.RESOURCE_DETAIL.replace(':id', id);
+        return this.request(endpoint, { method: 'DELETE' });
+    }
+
+    async getResourceTypes() {
+        return this.request(API_CONFIG.ENDPOINTS.RESOURCE_TYPES);
+    }
+
 }
 
 /**

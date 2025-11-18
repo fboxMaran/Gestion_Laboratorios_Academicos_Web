@@ -10,6 +10,7 @@ const UsersModel = {
         u.full_name as name, 
         u.id_code as student_id,
         u.career_or_dept as department, 
+        u.school_dept_id,
         u.phone, 
         u.is_active, 
         u.created_at, 

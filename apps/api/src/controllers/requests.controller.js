@@ -79,24 +79,6 @@ async function preview(req, res) {
     const uid = userIdFrom(req);
     if (!lab_id || !from || !to) return res.status(400).json({ error: 'Faltan campos' });
 
-    // Validar fechas
-    const startDate = new Date(from);
-    const endDate = new Date(to);
-    const now = new Date();
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: 'Formato de fecha inválido' });
-    }
-
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    if (startDate < fiveMinutesAgo) {
-      return res.status(400).json({ error: 'No se pueden crear solicitudes con fechas pasadas' });
-    }
-
-    if (startDate >= endDate) {
-      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-    }
-
     const resourceIds = items.filter(i => i.resource_id).map(i => i.resource_id);
 
     const [avail, reqs] = await Promise.all([
@@ -137,69 +119,7 @@ async function create(req, res) {
       return res.status(400).json({ error: 'Las fechas de inicio y fin son obligatorias' });
     }
 
-    // Validar formato y lógica de fechas
-    const startDate = new Date(starts_at);
-    const endDate = new Date(ends_at);
-    const now = new Date();
-
-    // Validación: fechas válidas
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: 'Formato de fecha inválido' });
-    }
-
-    // Validación: no permitir fechas en el pasado (con margen de 5 minutos)
-    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    if (startDate < fiveMinutesAgo) {
-      return res.status(400).json({ error: 'No se pueden crear solicitudes con fechas pasadas' });
-    }
-
-    // Validación: fecha de inicio debe ser antes que fecha de fin
-    if (startDate >= endDate) {
-      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-    }
-
-    // Validación: duración máxima de 30 días (720 horas)
-    const durationHours = (endDate - startDate) / (1000 * 60 * 60);
-    if (durationHours > 720) {
-      return res.status(400).json({ error: 'La duración máxima de una reserva es de 30 días' });
-    }
-
-    // Validación: duración mínima de 30 minutos
-    if (durationHours < 0.5) {
-      return res.status(400).json({ error: 'La duración mínima de una reserva es de 30 minutos' });
-    }
-
     const resourceIds = items.filter(i => i.resource_id).map(i => i.resource_id);
-
-    // Validación: verificar que el laboratorio existe y está activo
-    const labCheck = await pool.query(
-      `SELECT id, name, is_active FROM lab WHERE id = $1`,
-      [lab_id]
-    );
-    if (labCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'El laboratorio especificado no existe' });
-    }
-    if (!labCheck.rows[0].is_active) {
-      return res.status(400).json({ error: 'El laboratorio no está activo actualmente' });
-    }
-
-    // Validación: verificar que los recursos existen y están disponibles
-    if (resourceIds.length > 0) {
-      const resourceCheck = await pool.query(
-        `SELECT id, name, state FROM resource WHERE id = ANY($1)`,
-        [resourceIds]
-      );
-      if (resourceCheck.rows.length !== resourceIds.length) {
-        return res.status(404).json({ error: 'Uno o más recursos especificados no existen' });
-      }
-      const unavailableResources = resourceCheck.rows.filter(r => r.state !== 'DISPONIBLE');
-      if (unavailableResources.length > 0) {
-        return res.status(400).json({ 
-          error: 'Uno o más recursos no están disponibles',
-          unavailable: unavailableResources.map(r => ({ id: r.id, name: r.name, state: r.state }))
-        });
-      }
-    }
 
     // Si hay fechas, verificar disponibilidad
     let avail = { ok: true, conflicts: [] };
@@ -215,15 +135,6 @@ async function create(req, res) {
     const reqs = uid ? 
       await requirementsOk({ labId: lab_id, userId: uid }) : 
       { ok: true, missing: [] };
-
-    // Si hay conflictos de disponibilidad, rechazar la creación
-    if (!avail.ok && avail.conflicts.length > 0) {
-      return res.status(409).json({ 
-        error: 'Conflicto de disponibilidad. El laboratorio o recursos solicitados no están disponibles en el horario especificado.',
-        conflicts: avail.conflicts,
-        availability_ok: false
-      });
-    }
 
     await client.query('BEGIN');
 

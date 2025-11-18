@@ -71,11 +71,43 @@ const LabsController = {
     }
   },
 
-  async list(_req, res, next) {
+  async list(req, res, next) {
     try {
+      // Si hay un query param 'my', devolver solo los laboratorios del usuario
+      if (req.query.my === 'true' && req.user) {
+        return this.myLabs(req, res, next);
+      }
       const rows = await Labs.listLabs();
       return res.json(rows);
     } catch (e) { return next(e); }
+  },
+
+  async myLabs(req, res, next) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+      }
+
+      // Obtener datos del usuario
+      const Users = require('../models/users.model');
+      const user = await Users.getById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      // Obtener laboratorios asociados
+      const labs = await Labs.getUserLabs(
+        userId,
+        user.email,
+        user.role,
+        user.school_dept_id
+      );
+
+      return res.json(labs);
+    } catch (e) {
+      return next(e);
+    }
   },
 
   async get(req, res, next) {
@@ -132,6 +164,38 @@ const LabsController = {
       const rows = await Labs.listContacts(req.params.id);
       return res.json(rows);
     } catch (e) { return next(e); }
+  },
+
+  async updateContact(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const contact_id = req.params.contactId;
+      const row = await Labs.updateContact(lab_id, contact_id, req.body);
+      if (!row) {
+        return res.status(404).json({ error: 'Contacto no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'UPDATE_CONTACT', detail: row });
+      return res.json(row);
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
+  },
+
+  async deleteContact(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const contact_id = req.params.contactId;
+      const deleted = await Labs.deleteContact(lab_id, contact_id);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Contacto no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'DELETE_CONTACT', detail: { contact_id } });
+      return res.status(204).end();
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
   },
 
   // POLICIES
@@ -191,10 +255,48 @@ const LabsController = {
     } catch (e) { return next(e); }
   },
 
+  async updateFixedResource(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const resource_id = req.params.resourceId;
+      const row = await Labs.updateFixedResource(lab_id, resource_id, req.body);
+      if (!row) {
+        return res.status(404).json({ error: 'Recurso fijo no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'UPDATE_FIXED_RESOURCE', detail: row });
+      return res.json(row);
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
+  },
+
+  async deleteFixedResource(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const resource_id = req.params.resourceId;
+      const deleted = await Labs.deleteFixedResource(lab_id, resource_id);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Recurso fijo no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'DELETE_FIXED_RESOURCE', detail: { resource_id } });
+      return res.status(204).end();
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
+  },
+
   // CONSUMABLES
   async addConsumable(req, res, next) {
     try {
-      const row = await Labs.addConsumable(req.params.id, req.body);
+      // Mapear 'quantity' del frontend a 'qty_available' del modelo
+      const data = { ...req.body };
+      if (data.quantity !== undefined) {
+        data.qty_available = data.quantity;
+        delete data.quantity;
+      }
+      const row = await Labs.addConsumable(req.params.id, data);
       await Labs.addHistory(req.params.id, { action: 'ADD_CONSUMABLE', detail: row });
       return res.status(201).json(row);
     } catch (e) {
@@ -210,6 +312,44 @@ const LabsController = {
     } catch (e) { return next(e); }
   },
 
+  async updateConsumable(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const consumable_id = req.params.consumableId;
+      // Mapear 'quantity' del frontend a 'qty_available' del modelo
+      const data = { ...req.body };
+      if (data.quantity !== undefined) {
+        data.qty_available = data.quantity;
+        delete data.quantity;
+      }
+      const row = await Labs.updateConsumable(lab_id, consumable_id, data);
+      if (!row) {
+        return res.status(404).json({ error: 'Consumible no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'UPDATE_CONSUMABLE', detail: row });
+      return res.json(row);
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
+  },
+
+  async deleteConsumable(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      const consumable_id = req.params.consumableId;
+      const deleted = await Labs.deleteConsumable(lab_id, consumable_id);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Consumible no encontrado' });
+      }
+      await Labs.addHistory(lab_id, { action: 'DELETE_CONSUMABLE', detail: { consumable_id } });
+      return res.status(204).end();
+    } catch (e) {
+      try { return handlePgError(res, e); }
+      catch (err) { return next(err); }
+    }
+  },
+
   // HISTORY
   async history(req, res, next) {
     try {
@@ -217,6 +357,83 @@ const LabsController = {
       return res.json(rows);
     } catch (e) { return next(e); }
   },
+
+  async exportHistoryPDF(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      let history = await Labs.listHistory(lab_id);
+      
+      // Aplicar filtros si existen
+      history = applyHistoryFilters(history, req.query);
+      
+      const lab = await Labs.getLab(lab_id);
+      const labName = lab ? lab.name : 'Laboratorio';
+
+      const { generateHistoryPDF } = require('../utils/export');
+      const pdfBuffer = await generateHistoryPDF(history, labName);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="historial_lab_${lab_id}_${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (e) {
+      return next(e);
+    }
+  },
+
+  async exportHistoryExcel(req, res, next) {
+    try {
+      const lab_id = req.params.id;
+      let history = await Labs.listHistory(lab_id);
+      
+      // Aplicar filtros si existen
+      history = applyHistoryFilters(history, req.query);
+      
+      const lab = await Labs.getLab(lab_id);
+      const labName = lab ? lab.name : 'Laboratorio';
+
+      const { generateHistoryExcel } = require('../utils/export');
+      const excelBuffer = await generateHistoryExcel(history, labName);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="historial_lab_${lab_id}_${Date.now()}.xlsx"`);
+      res.send(excelBuffer);
+    } catch (e) {
+      return next(e);
+    }
+  },
 };
+
+/**
+ * Aplica filtros al historial
+ */
+function applyHistoryFilters(history, query) {
+  let filtered = [...history];
+  
+  if (query.dateFrom) {
+    const dateFrom = new Date(query.dateFrom);
+    filtered = filtered.filter(h => new Date(h.created_at || h.date) >= dateFrom);
+  }
+  
+  if (query.dateTo) {
+    const dateTo = new Date(query.dateTo);
+    dateTo.setHours(23, 59, 59);
+    filtered = filtered.filter(h => new Date(h.created_at || h.date) <= dateTo);
+  }
+  
+  if (query.action) {
+    filtered = filtered.filter(h => 
+      (h.action || h.action_type || '').includes(query.action)
+    );
+  }
+  
+  if (query.user) {
+    const userLower = query.user.toLowerCase();
+    filtered = filtered.filter(h => 
+      (h.user_name || h.user || '').toLowerCase().includes(userLower)
+    );
+  }
+  
+  return filtered;
+}
 
 module.exports = LabsController;
