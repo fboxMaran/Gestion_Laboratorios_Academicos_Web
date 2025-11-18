@@ -10,7 +10,7 @@ export const USE_MOCK_DATA = false; // ✅ Cambiado a false para usar API real
 
 // URLS DEL API
 export const API_CONFIG = {
-    BASE_URL: 'http://localhost:3000/api',
+    BASE_URL: 'http://localhost:8080/api',
     ENDPOINTS: {
         // Auth
         LOGIN: '/auth/login',

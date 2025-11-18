@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(role);
                 // Mapeo de roles según la base de datos:
                 // 1: Estudiante, 2: Docente, 3: EncargadoTecnico, 4: Admin
-                if (role === 'technician') {
+                if (role === 'technician' || role === 'EncargadoTecnico') {
                     // Técnicos van a su página especializada
                     window.location.href = './pages/search-tech.html';
                 } else if (role === 'Admin') {
