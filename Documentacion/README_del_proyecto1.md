@@ -1,4 +1,10 @@
 # Gestión de Laboratorios Académicos (LabTEC)
+Integrantes:
+Jeremmy Aguilar Villanueva
+Jenny King Bustamante
+Juan Pablo Cambronero
+Marlon Badilla Mora
+
 
 Monorepo con:
 - **API** (Node/Express + PostgreSQL) bajo Docker
