@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = './pages/search-tech.html';
                 } else if (role === 'Admin') {
                     // Administradores van al dashboard (o página específica de admin si existe)
-                    window.location.href = './pages/dashboard.html';
+                    window.location.href = './pages/administration.html';
                 } else if (role === 'Docente') {
                     // Docentes van al dashboard
                     window.location.href = './pages/dashboard.html';

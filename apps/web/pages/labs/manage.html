@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Laboratorio - LabTEC</title>
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../assets/css/components.css">
+    <link rel="stylesheet" href="../../assets/css/labs-manage.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>🔬 Gestión de Laboratorio</h2>
+            </div>
+            <div class="navbar-menu">
+                <a href="../notifications.html" class="navbar-notifications">
+                    🔔
+                </a>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="../dashboard.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./manage.html">
+                    <span class="sidebar-icon">🔬</span>
+                    <span>Mi Laboratorio</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="../search.html">
+                    <span class="sidebar-icon">🔍</span>
+                    <span>Buscar Recursos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="../requests.html">
+                    <span class="sidebar-icon">📋</span>
+                    <span>Solicitudes</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="../profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="../notifications.html">
+                    <span class="sidebar-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Header -->
+            <div class="page-header">
+                <div>
+                    <h1 id="labName">Gestión de Laboratorio</h1>
+                    <p class="text-secondary">Administra la información, recursos y políticas de tu laboratorio</p>
+                </div>
+                <div class="header-actions">
+                    <button id="btnEditMode" class="btn btn-primary" style="display: none;">
+                        ✏️ Editar
+                    </button>
+                    <button id="btnSaveChanges" class="btn btn-success" style="display: none;">
+                        💾 Guardar Cambios
+                    </button>
+                    <button id="btnCancelEdit" class="btn btn-outline" style="display: none;">
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            <div id="alertContainer"></div>
+
+            <!-- Selector de Laboratorio (si tiene múltiples) -->
+            <div class="card mt-xl" id="labSelectorCard" style="display: none;">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="labSelector">Seleccionar Laboratorio</label>
+                        <select id="labSelector" class="form-control">
+                            <option value="">Cargando laboratorios...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="tabs-container mt-xl">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="general">
+                        📋 Información General
+                    </button>
+                    <button class="tab-btn" data-tab="contacts">
+                        👥 Responsables y Contactos
+                    </button>
+                    <button class="tab-btn" data-tab="fixed-resources">
+                        🔧 Recursos Fijos
+                    </button>
+                    <button class="tab-btn" data-tab="consumables">
+                        📦 Materiales Consumibles
+                    </button>
+                    <button class="tab-btn" data-tab="policies">
+                        📜 Políticas Internas
+                    </button>
+                    <button class="tab-btn" data-tab="history">
+                        📚 Historial
+                    </button>
+                </div>
+
+                <!-- Tab Content: Información General -->
+                <div class="tab-content active" id="tab-general">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Información del Laboratorio</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="labProfileForm">
+                                <div class="grid grid-cols-2">
+                                    <div class="form-group">
+                                        <label for="labNameInput">Nombre del Laboratorio *</label>
+                                        <input type="text" id="labNameInput" name="name" required 
+                                               class="form-control" placeholder="Ej: Laboratorio de Electrónica">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="labCodeInput">Código Interno *</label>
+                                        <input type="text" id="labCodeInput" name="code" required 
+                                               class="form-control" placeholder="Ej: LAB-ELEC-001">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="labLocationInput">Ubicación Exacta *</label>
+                                    <input type="text" id="labLocationInput" name="location" required 
+                                           class="form-control" placeholder="Ej: Edificio A, Piso 2, Sala 201">
+                                </div>
+                                <div class="form-group">
+                                    <label for="labDescriptionInput">Descripción de Áreas de Trabajo</label>
+                                    <textarea id="labDescriptionInput" name="description" rows="4" 
+                                              class="form-control" 
+                                              placeholder="Describe las áreas de trabajo y especialidades del laboratorio..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="labDepartmentSelect">Departamento/Escuela *</label>
+                                    <select id="labDepartmentSelect" name="department_id" required class="form-control">
+                                        <option value="">Seleccionar departamento...</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Responsables y Contactos -->
+                <div class="tab-content" id="tab-contacts">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Responsables y Contactos</h3>
+                            <button class="btn btn-primary btn-sm" id="btnAddContact">
+                                ➕ Agregar Contacto
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Cargo</th>
+                                            <th>Teléfono</th>
+                                            <th>Correo Institucional</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contactsTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center">Cargando contactos...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Recursos Fijos -->
+                <div class="tab-content" id="tab-fixed-resources">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Equipos Principales (Recursos Fijos)</h3>
+                            <button class="btn btn-primary btn-sm" id="btnAddFixedResource">
+                                ➕ Agregar Equipo
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Filtros -->
+                            <div class="grid grid-cols-3 mb-md">
+                                <div class="form-group">
+                                    <label for="filterFixedStatus">Filtrar por Estado</label>
+                                    <select id="filterFixedStatus" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="Disponible">Disponible</option>
+                                        <option value="En mantenimiento">En mantenimiento</option>
+                                        <option value="Inactivo">Inactivo</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="searchFixedResource">Buscar</label>
+                                    <input type="text" id="searchFixedResource" class="form-control" 
+                                           placeholder="Código o nombre...">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Código de Inventario</th>
+                                            <th>Nombre del Equipo</th>
+                                            <th>Estado</th>
+                                            <th>Último Mantenimiento</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fixedResourcesTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center">Cargando equipos...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Materiales Consumibles -->
+                <div class="tab-content" id="tab-consumables">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Materiales Consumibles</h3>
+                            <button class="btn btn-primary btn-sm" id="btnAddConsumable">
+                                ➕ Agregar Material
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- Filtros -->
+                            <div class="grid grid-cols-2 mb-md">
+                                <div class="form-group">
+                                    <label for="filterConsumableStatus">Filtrar por Estado</label>
+                                    <select id="filterConsumableStatus" class="form-control">
+                                        <option value="">Todos</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="low">Bajo Stock</option>
+                                        <option value="out">Agotado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="searchConsumable">Buscar</label>
+                                    <input type="text" id="searchConsumable" class="form-control" 
+                                           placeholder="Nombre del material...">
+                                </div>
+                            </div>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Cantidad Disponible</th>
+                                            <th>Unidad</th>
+                                            <th>Punto de Reorden</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="consumablesTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center">Cargando materiales...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Políticas Internas -->
+                <div class="tab-content" id="tab-policies">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Políticas Internas del Laboratorio</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="policiesForm">
+                                <!-- Requisitos Académicos -->
+                                <div class="section-divider">
+                                    <h4>📚 Requisitos Académicos</h4>
+                                </div>
+                                <div class="form-group">
+                                    <label for="requiredCourses">Cursos Previos Requeridos</label>
+                                    <textarea id="requiredCourses" name="required_courses" rows="3" 
+                                              class="form-control" 
+                                              placeholder="Lista los cursos previos necesarios, separados por comas. Ej: Circuitos I, Electrónica Básica"></textarea>
+                                    <small class="form-text">Separa los cursos con comas</small>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="inductionRequired" name="induction_required">
+                                        <span>Inducción obligatoria antes de usar el laboratorio</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="requiredCertifications">Certificaciones Necesarias</label>
+                                    <textarea id="requiredCertifications" name="required_certifications" rows="2" 
+                                              class="form-control" 
+                                              placeholder="Lista las certificaciones requeridas, separadas por comas"></textarea>
+                                </div>
+
+                                <!-- Requisitos de Seguridad -->
+                                <div class="section-divider">
+                                    <h4>🛡️ Requisitos de Seguridad</h4>
+                                </div>
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="ppeRequired" name="ppe_required">
+                                        <span>Equipo de Protección Personal (EPP) requerido</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="riskLevel">Nivel de Riesgo</label>
+                                    <select id="riskLevel" name="risk_level" class="form-control">
+                                        <option value="Bajo">Bajo</option>
+                                        <option value="Medio">Medio</option>
+                                        <option value="Alto">Alto</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="safetyRestrictions">Restricciones Especiales de Seguridad</label>
+                                    <textarea id="safetyRestrictions" name="safety_restrictions" rows="3" 
+                                              class="form-control" 
+                                              placeholder="Describe restricciones o consideraciones especiales de seguridad..."></textarea>
+                                </div>
+
+                                <!-- Horarios de Funcionamiento -->
+                                <div class="section-divider">
+                                    <h4>🕐 Horarios de Funcionamiento</h4>
+                                </div>
+                                <div class="form-group">
+                                    <label>Días Disponibles</label>
+                                    <div class="checkbox-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Lunes">
+                                            <span>Lunes</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Martes">
+                                            <span>Martes</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Miércoles">
+                                            <span>Miércoles</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Jueves">
+                                            <span>Jueves</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Viernes">
+                                            <span>Viernes</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Sábado">
+                                            <span>Sábado</span>
+                                        </label>
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="days" value="Domingo">
+                                            <span>Domingo</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2">
+                                    <div class="form-group">
+                                        <label for="openingTime">Hora de Apertura</label>
+                                        <input type="time" id="openingTime" name="opening_time" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="closingTime">Hora de Cierre</label>
+                                        <input type="time" id="closingTime" name="closing_time" class="form-control">
+                                    </div>
+                                </div>
+
+                                <!-- Capacidad -->
+                                <div class="section-divider">
+                                    <h4>👥 Capacidad</h4>
+                                </div>
+                                <div class="form-group">
+                                    <label for="maxCapacity">Capacidad Máxima de Personas *</label>
+                                    <input type="number" id="maxCapacity" name="max_capacity" min="1" required 
+                                           class="form-control" placeholder="Ej: 20">
+                                </div>
+
+                                <div class="form-actions mt-xl">
+                                    <button type="submit" class="btn btn-primary">💾 Guardar Políticas</button>
+                                    <button type="button" class="btn btn-outline" id="btnCancelPolicies">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Historial -->
+                <div class="tab-content" id="tab-history">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Historial de Actividades</h3>
+                            <div>
+                                <button class="btn btn-outline btn-sm" id="btnExportPDF">📄 Exportar PDF</button>
+                                <button class="btn btn-outline btn-sm" id="btnExportExcel">📊 Exportar Excel</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Filtros -->
+                            <div class="grid grid-cols-4 mb-md">
+                                <div class="form-group">
+                                    <label for="filterHistoryDateFrom">Fecha Desde</label>
+                                    <input type="date" id="filterHistoryDateFrom" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="filterHistoryDateTo">Fecha Hasta</label>
+                                    <input type="date" id="filterHistoryDateTo" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label for="filterHistoryAction">Tipo de Acción</label>
+                                    <select id="filterHistoryAction" class="form-control">
+                                        <option value="">Todas</option>
+                                        <option value="CREATE_LAB">Crear Laboratorio</option>
+                                        <option value="UPDATE_LAB">Actualizar Laboratorio</option>
+                                        <option value="ADD_CONTACT">Agregar Contacto</option>
+                                        <option value="ADD_RESOURCE">Agregar Recurso</option>
+                                        <option value="UPDATE_POLICIES">Actualizar Políticas</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="filterHistoryUser">Usuario</label>
+                                    <input type="text" id="filterHistoryUser" class="form-control" 
+                                           placeholder="Buscar por usuario...">
+                                </div>
+                            </div>
+                            <div class="mb-md">
+                                <button class="btn btn-primary" id="btnFilterHistory">🔍 Filtrar</button>
+                                <button class="btn btn-outline" id="btnClearHistoryFilters">Limpiar Filtros</button>
+                            </div>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha y Hora</th>
+                                            <th>Usuario</th>
+                                            <th>Acción</th>
+                                            <th>Detalle</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="historyTableBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center">Cargando historial...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Agregar/Editar Contacto -->
+    <div id="contactModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="contactModalTitle">Agregar Contacto</h3>
+                <button class="modal-close" onclick="closeModal('contactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm">
+                    <input type="hidden" id="contactId" name="id">
+                    <div class="form-group">
+                        <label for="contactName">Nombre Completo *</label>
+                        <input type="text" id="contactName" name="name" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPosition">Cargo *</label>
+                        <input type="text" id="contactPosition" name="position" required class="form-control" 
+                               placeholder="Ej: Encargado, Técnico, Coordinador">
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPhone">Teléfono</label>
+                        <input type="tel" id="contactPhone" name="phone" class="form-control" 
+                               placeholder="Ej: 8888-8888">
+                    </div>
+                    <div class="form-group">
+                        <label for="contactEmail">Correo Institucional *</label>
+                        <input type="email" id="contactEmail" name="email" required class="form-control" 
+                               placeholder="@tec.ac.cr o @estudiantec.cr"
+                               pattern="[a-zA-Z0-9._%+-]+@(tec\.ac\.cr|estudiantec\.cr)$">
+                        <small class="form-text">Debe ser un correo institucional del TEC</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('contactModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveContact">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar/Editar Recurso Fijo -->
+    <div id="fixedResourceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="fixedResourceModalTitle">Agregar Equipo</h3>
+                <button class="modal-close" onclick="closeModal('fixedResourceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="fixedResourceForm">
+                    <input type="hidden" id="fixedResourceId" name="id">
+                    <div class="form-group">
+                        <label for="fixedResourceCode">Código de Inventario *</label>
+                        <input type="text" id="fixedResourceCode" name="inventory_code" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fixedResourceName">Nombre del Equipo *</label>
+                        <input type="text" id="fixedResourceName" name="name" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="fixedResourceDescription">Descripción</label>
+                        <textarea id="fixedResourceDescription" name="description" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="fixedResourceStatus">Estado Operativo *</label>
+                        <select id="fixedResourceStatus" name="status" required class="form-control">
+                            <option value="Disponible">Disponible</option>
+                            <option value="En mantenimiento">En mantenimiento</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fixedResourceLastMaintenance">Fecha del Último Mantenimiento</label>
+                        <input type="date" id="fixedResourceLastMaintenance" name="last_maintenance_date" class="form-control">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('fixedResourceModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveFixedResource">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar/Editar Consumible -->
+    <div id="consumableModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="consumableModalTitle">Agregar Material Consumible</h3>
+                <button class="modal-close" onclick="closeModal('consumableModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="consumableForm">
+                    <input type="hidden" id="consumableId" name="id">
+                    <div class="form-group">
+                        <label for="consumableName">Nombre del Material *</label>
+                        <input type="text" id="consumableName" name="name" required class="form-control">
+                    </div>
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label for="consumableQuantity">Cantidad Disponible *</label>
+                            <input type="number" id="consumableQuantity" name="quantity" min="0" step="0.01" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="consumableUnit">Unidad de Medida *</label>
+                            <select id="consumableUnit" name="unit" required class="form-control">
+                                <option value="unidades">Unidades</option>
+                                <option value="kg">Kilogramos (kg)</option>
+                                <option value="g">Gramos (g)</option>
+                                <option value="L">Litros (L)</option>
+                                <option value="mL">Mililitros (mL)</option>
+                                <option value="m">Metros (m)</option>
+                                <option value="cm">Centímetros (cm)</option>
+                                <option value="m²">Metros cuadrados (m²)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="consumableReorderPoint">Punto de Reorden *</label>
+                        <input type="number" id="consumableReorderPoint" name="reorder_point" min="0" step="0.01" required class="form-control">
+                        <small class="form-text">Cantidad mínima antes de generar alerta</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="consumableDescription">Descripción</label>
+                        <textarea id="consumableDescription" name="description" rows="2" class="form-control"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('consumableModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSaveConsumable">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../../assets/js/config.js"></script>
+    <script type="module" src="../../assets/js/api.js"></script>
+    <script type="module" src="../../assets/js/auth.js"></script>
+    <script type="module" src="../../assets/js/labs-manage.js"></script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: bold;
+            margin: var(--spacing-sm) 0;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+        }
+    </style>
+</body>
+</html>
+
