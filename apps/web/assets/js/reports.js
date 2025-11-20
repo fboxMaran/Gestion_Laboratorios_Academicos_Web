@@ -73,16 +73,16 @@ function renderReport(data, type) {
     showNotification(`${data.length} registros cargados para "${translateType(type)}"`, 'success');
 }
 
-// ==================== EXPORTACIÓN ====================
-document.getElementById('exportPDF').addEventListener('click', async () => {
-    const res = await api.exportReport('pdf');
-    showNotification(res.message, 'info');
-});
+// ==================== EXPORTACIÓN con api====================
+// document.getElementById('exportPDF').addEventListener('click', async () => {
+//     const res = await api.exportReport('pdf');
+//     showNotification(res.message, 'info');
+// });
 
-document.getElementById('exportExcel').addEventListener('click', async () => {
-    const res = await api.exportReport('excel');
-    showNotification(res.message, 'info');
-});
+// document.getElementById('exportExcel').addEventListener('click', async () => {
+//     const res = await api.exportReport('excel');
+//     showNotification(res.message, 'info');
+// });
 
 // ==================== GRÁFICOS ====================
 function renderCharts(data) {
@@ -161,6 +161,62 @@ function translateStatus(status) {
         default: return 'Desconocido';
     }
 }
+// ==================== REPORTES ====================
+window.exportPDF = function () {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
+    doc.setFontSize(18);
+    doc.text("Reporte Generado", 10, 15);
+
+    let y = 30;
+
+    reportsData.forEach(item => {
+        doc.setFontSize(12);
+        doc.text(
+            `• ${translateType(item.type)} | ${item.resource} | ${item.lab} | ${item.date} | ${item.user}`,
+            10,
+            y
+        );
+        y += 8;
+
+        if (y > 270) {
+            doc.addPage();
+            y = 20;
+        }
+    });
+
+    doc.save("reporte.pdf");
+    showNotification("PDF exportado correctamente ✔️", "success");
+};
+
+window.exportExcel = function () {
+    if (!Array.isArray(reportsData) || reportsData.length === 0) {
+        showNotification("No hay datos para exportar.", "warning");
+        return;
+    }
+
+    const data = reportsData.map(item => ({
+        Tipo: translateType(item.type),
+        Recurso: item.resource,
+        Laboratorio: item.lab,
+        Fecha: item.date,
+        Usuario: item.user,
+        Estado: translateStatus(item.status)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reportes");
+    XLSX.writeFile(workbook, "reporte.xlsx");
+
+    showNotification("Archivo Excel exportado correctamente ✔️", "success");
+};
+
+document.getElementById("exportPDF").addEventListener("click", window.exportPDF);
+document.getElementById("exportExcel").addEventListener("click", window.exportExcel);
+
+// hey
 // ==================== INICIO ====================
 loadReports();
