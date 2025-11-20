@@ -10,7 +10,7 @@ export const USE_MOCK_DATA = false; // ✅ Cambiado a false para usar API real
 
 // URLS DEL API
 export const API_CONFIG = {
-    BASE_URL: 'http://localhost:3000/api',
+    BASE_URL: 'http://localhost:8080/api',
     ENDPOINTS: {
         // Auth
         LOGIN: '/auth/login',
@@ -50,7 +50,45 @@ export const API_CONFIG = {
         // Reports
         REPORTS: '/reports',
         EXPORT_PDF: '/reports/export/pdf',
-        EXPORT_EXCEL: '/reports/export/excel'
+        EXPORT_EXCEL: '/reports/export/excel',
+        
+        // Labs Management (Módulo 1.1)
+        LABS: '/labs',
+        LAB_DETAIL: '/labs/:id',
+        LAB_CONTACTS: '/labs/:id/contacts',
+        LAB_POLICIES: '/labs/:id/policies',
+        LAB_HOURS: '/labs/:id/hours',
+        LAB_FIXED_RESOURCES: '/labs/:id/resources-fixed',
+        LAB_CONSUMABLES: '/labs/:id/consumables',
+        LAB_HISTORY: '/labs/:id/history',
+        DEPARTMENTS: '/departments',
+        
+        // Availability & Resources (Módulo 1.2)
+        AVAILABILITY_SLOTS: '/availability/labs/:labId/slots',
+        AVAILABILITY_SLOT_STATUS: '/availability/slots/:id/status',
+        AVAILABILITY_SLOT_DELETE: '/availability/slots/:id',
+        AVAILABILITY_SUBSCRIPTIONS: '/availability/subscriptions',
+        AVAILABILITY_SUBSCRIPTION_DELETE: '/availability/subscriptions/:id',
+        AVAILABILITY_CHANGELOG: '/availability/changelog',
+        RESOURCES: '/resources',
+        RESOURCE_DETAIL: '/resources/:id',
+        RESOURCE_TYPES: '/resource-types',
+
+
+        // Administration
+        ADMINISTRATION: '/admin', 
+        USERS: '/admin/users',
+        UPDATE_USER: '/admin/users/:id',
+        CREATE_USER: '/admin/users',
+
+        // Settings
+        SETTINGS : '/admin/settings',
+        UPDATE_SETTING : '/admin/settings/:key',
+        UPDATEMANY_SETTINGS : '/admin/updateManySettings',
+
+        // Audit
+        AUDIT_LOG: '/admin/audit',
+        INSERT_AUDIT_LOG: '/admin/audit'
 
     }
 };

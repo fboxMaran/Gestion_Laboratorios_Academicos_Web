@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración - Gestión de Laboratorios</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="navbar-brand">
+        <h2>📋 Administración de laboratorios</h2>
+      </div>
+      <div class="navbar-menu">
+        <a href="./notifications.html" class="navbar-notifications">
+          🔔
+        </a>
+        <div class="navbar-user">
+          <span id="userName">Administrador</span>
+          <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-item">
+            <a href="./administration.html">
+            <span class="sidebar-icon">🏠</span>
+            <span>Dashboard</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="./admin_profile.html">
+            <span class="sidebar-icon">👤</span>
+            <span>Mi Perfil</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="./admin_users.html">
+            <span class="sidebar-icon">👥</span>
+            <span>Usuarios</span>
+            </a>
+        </li>
+        <li class="sidebar-item active">
+            <a href="./admin_settings.html">
+            <span class="sidebar-icon">⚙️</span>
+            <span>Configuración</span>
+            </a>
+        </li>
+        <li class="sidebar-item">
+            <a href="./admin_audit.html">
+            <span class="sidebar-icon">🕵️</span>
+            <span>Supervisión / Auditoría</span>
+            </a>
+        </li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <h1>⚙️ Configuración de Parámetros Globales</h1>
+          <p class="text-secondary">
+            Define reglas y valores predeterminados que afectan el comportamiento general de la plataforma.
+          </p>
+        </div>
+        <div class="page-header-actions">
+          <button id="btnSaveAll" class="btn btn-sm btn-primary">
+            💾 Guardar cambios
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. Parámetros de reserva -->
+      <div class="card mt-lg">
+        <div class="card-header">
+          <h3>Parámetros de reserva</h3>
+          <p class="text-secondary">
+            Duración máxima, antelación mínima y número de reservas simultáneas permitidas.
+          </p>
+        </div>
+        <div class="card-body grid grid-cols-3 gap-md">
+          <div class="form-group">
+            <label for="maxDuration">Duración máxima de reserva</label>
+            <div class="input-group">
+              <input type="number" id="maxDuration" class="input" min="1" placeholder="Ej: 3">
+              <span class="input-addon">horas</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="minAdvance">Antelación mínima</label>
+            <div class="input-group">
+              <input type="number" id="minAdvance" class="input" min="0" placeholder="Ej: 24">
+              <span class="input-addon">horas</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="maxSimultaneous">Reservas simultáneas permitidas</label>
+            <input type="number" id="maxSimultaneous" class="input" min="1" placeholder="Ej: 2">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Estados y etiquetas -->
+      <div class="card mt-lg">
+        <div class="card-header">
+          <h3>Estados y etiquetas</h3>
+          <p class="text-secondary">
+            Crea y modifica estados personalizados para recursos y solicitudes.
+          </p>
+        </div>
+        <div class="card-body">
+          <h4>Estados de solicitudes</h4>
+          <div class="table-wrapper mt-md">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nombre del estado</th>
+                  <th>Tipo</th>
+                  <th>Color</th>
+                  <th style="width: 120px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="requestStatusTable">
+                <!-- Aquí se cargarán estados existentes -->
+                <tr>
+                  <td colspan="4" class="text-center text-secondary">Sin estados configurados</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-md">
+            <h4>Agregar nuevo estado</h4>
+            <div class="grid grid-cols-4 gap-md">
+              <div class="form-group">
+                <label for="newStatusName">Nombre</label>
+                <input type="text" id="newStatusName" class="input" placeholder="Ej: En revisión">
+              </div>
+              <div class="form-group">
+                <label for="newStatusType">Tipo</label>
+                <select id="newStatusType" class="input">
+                  <option value="request">Solicitud</option>
+                  <option value="resource">Recurso</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="newStatusColor">Color</label>
+                <input type="color" id="newStatusColor" class="input" value="#0080ff">
+              </div>
+              <div class="form-group" style="align-self: flex-end;">
+                <button id="btnAddStatus" class="btn btn-sm btn-outline">➕ Agregar estado</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Notificaciones -->
+      <div class="card mt-lg">
+        <div class="card-header">
+          <h3>Notificaciones</h3>
+          <p class="text-secondary">
+            Configura tiempos y canales de envío (correo, notificación interna).
+          </p>
+        </div>
+        <div class="card-body grid grid-cols-2 gap-md">
+          <div class="form-group">
+            <label for="notifyBefore">Recordatorio previo a reserva</label>
+            <div class="input-group">
+              <input type="number" id="notifyBefore" class="input" min="0" placeholder="Ej: 1">
+              <span class="input-addon">horas antes</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Canales de notificación</label>
+            <div class="flex-column gap-sm">
+              <label>
+                <input type="checkbox" id="notifyEmail">
+                Correo electrónico
+              </label>
+              <label>
+                <input type="checkbox" id="notifyInternal">
+                Notificación interna
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Políticas de mantenimiento -->
+      <div class="card mt-lg mb-xl">
+        <div class="card-header">
+          <h3>Políticas de mantenimiento</h3>
+          <p class="text-secondary">
+            Define intervalos y responsables predeterminados para el mantenimiento de recursos.
+          </p>
+        </div>
+        <div class="card-body grid grid-cols-3 gap-md">
+          <div class="form-group">
+            <label for="maintenanceIntervalDays">Intervalo por tiempo</label>
+            <div class="input-group">
+              <input type="number" id="maintenanceIntervalDays" class="input" min="0" placeholder="Ej: 90">
+              <span class="input-addon">días</span>
+            </div>
+          </div>
+
+          <!--
+          <div class="form-group">
+            <label for="maintenanceIntervalUsage">Intervalo por uso</label>
+            <div class="input-group">
+              <input type="number" id="maintenanceIntervalUsage" class="input" min="0" placeholder="Ej: 100">
+              <span class="input-addon">horas de uso</span>
+            </div>
+          </div>
+            -->
+
+          <div class="form-group">
+            <label for="maintenanceOwner">Responsable predeterminado</label>
+            <select id="maintenanceOwner" class="input">
+              <option value="">Selecciona un responsable</option>
+              <option value="Encargado Técnico">Encargado Técnico</option>
+              <option value="Coordinador de laboratorio">Coordinador de laboratorio</option>
+              <option value="Admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Lógica básica de la página -->
+  <script type="module">
+    import api from '../assets/js/api.js';
+    import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+    import { showNotification } from '../assets/js/utils.js';
+
+    requireAuth();
+    window.logout = authLogout;
+
+    const currentUser = getCurrentUser();
+    if (currentUser && document.getElementById('userName')) {
+        document.getElementById('userName').textContent = currentUser.name || 'Usuario';
+    }
+
+    // --------- refs a los inputs ---------
+    const maxDurationInput            = document.getElementById('maxDuration');
+    const minAdvanceInput            = document.getElementById('minAdvance');
+    const maxSimultaneousInput       = document.getElementById('maxSimultaneous');
+
+    const notifyBeforeInput          = document.getElementById('notifyBefore');
+    const notifyEmailCheckbox        = document.getElementById('notifyEmail');
+    const notifyInternalCheckbox     = document.getElementById('notifyInternal');
+
+    const maintenanceIntervalDays    = document.getElementById('maintenanceIntervalDays');
+    //const maintenanceIntervalUsage   = document.getElementById('maintenanceIntervalUsage');
+    const maintenanceOwnerSelect     = document.getElementById('maintenanceOwner');
+
+    const requestStatusTableBody     = document.getElementById('requestStatusTable');
+
+    const btnSaveAll                 = document.getElementById('btnSaveAll');
+    const btnAddStatus               = document.getElementById('btnAddStatus');
+
+    // --------- cargar settings desde la API ---------
+    async function loadSettings() {
+        try {
+            const items = await api.getSettings(); // ← esto ahora es un Array de {key, value}
+            console.log('[Settings] Recibidos:', items);
+
+            // Pasar el arreglo a un objeto tipo { clave: valor }
+            const s = {};
+            (items || []).forEach(item => {
+            if (item && item.key != null) {
+                s[item.key] = item.value;
+            }
+            });
+
+            // --- Parámetros de reserva ---
+            // Duración máxima de reserva (tu clave es "max_loan_duration_days")
+            if (maxDurationInput) {
+            maxDurationInput.value = s.max_loan_duration_days ?? '';
+            }
+
+            // Antelación mínima (tu clave es "min_hours_notice")
+            if (minAdvanceInput) {
+            minAdvanceInput.value = s.min_hours_notice ?? '';
+            }
+
+            // Reservas simultáneas (tu clave es "max_concurrent_requests")
+            if (maxSimultaneousInput) {
+            maxSimultaneousInput.value = s.max_concurrent_requests ?? '';
+            }
+
+            // --- Notificaciones ---
+            // No tienes una clave exacta de "notify_before_hours", pero podrías usar:
+            // maintenance_notification_days como aproximación (o dejarlo vacío si prefieres)
+            if (notifyBeforeInput) {
+            notifyBeforeInput.value = s.notification_email_hours ?? '';
+            }
+
+            // Canales de notificación: como todavía no vienen del backend, los dejamos por defecto
+            if (notifyEmailCheckbox)    notifyEmailCheckbox.checked    = true;
+            if (notifyInternalCheckbox) notifyInternalCheckbox.checked = true;
+
+            // --- Mantenimiento ---
+            // Podrías usar maintenance_notification_days como intervalo por tiempo
+            if (maintenanceIntervalDays) {
+            maintenanceIntervalDays.value = s.maintenance_notification_days ?? '';
+            }
+
+            /*
+            // No tienes una clave para "interval_usage_hours", lo dejamos vacío
+            if (maintenanceIntervalUsage) {
+            maintenanceIntervalUsage.value = '';
+            }
+            */
+
+            // Tampoco tienes "default_owner" en los datos, así que lo dejamos sin seleccionar
+            if (maintenanceOwnerSelect) {
+            // por ahora no hay valor en settings, así que no forzamos nada
+            // maintenanceOwnerSelect.value = 'Encargado Técnico';  // si quieres un default
+            }
+
+            // --- Estados / etiquetas ---
+            // Tu API de getSettings ahora mismo NO trae statuses, así que dejamos la tabla tal cual
+            renderStatuses([]); // o simplemente no la toques
+
+        } catch (error) {
+            console.error('[Settings] Error al cargar configuración:', error);
+            showNotification('No se pudo cargar la configuración global', 'error');
+        }
+    }
+
+    function renderStatuses(statuses) {
+        if (!requestStatusTableBody) return;
+
+        if (!statuses.length) {
+        requestStatusTableBody.innerHTML = `
+            <tr>
+            <td colspan="4" class="text-center text-secondary">
+                Sin estados configurados
+            </td>
+            </tr>
+        `;
+        return;
+        }
+
+        requestStatusTableBody.innerHTML = statuses.map(st => `
+        <tr data-status-id="${st.id}">
+            <td>${st.name}</td>
+            <td>${st.type === 'resource' ? 'Recurso' : 'Solicitud'}</td>
+            <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${st.color};border:1px solid #ccc;"></span>
+                <span>${st.color}</span>
+            </div>
+            </td>
+            <td>
+            <button class="btn btn-sm btn-outline" data-action="edit-status">Editar</button>
+            <button class="btn btn-sm btn-outline" data-action="delete-status">Eliminar</button>
+            </td>
+        </tr>
+        `).join('');
+    }
+
+    // --------- Guardar todo (estructura básica, aún sin API concreta) ---------
+    btnSaveAll?.addEventListener('click', async () => {
+        try {
+            const settingsToSave = [
+            {
+                key: 'max_loan_duration_days',
+                value: maxDurationInput.value || null,
+            },
+            {
+                key: 'min_hours_notice',
+                value: minAdvanceInput.value || null,
+            },
+            {
+                key: 'max_concurrent_requests',
+                value: maxSimultaneousInput.value || null,
+            },
+            {
+                key: 'notification_email_hours',
+                value: notifyBeforeInput.value || null,
+            },
+            {
+                key: 'maintenance_notification_days',
+                value: maintenanceIntervalDays.value || null,
+            },
+            ];
+
+            console.log('Voy a enviar:', settingsToSave); // 👈 pon esto para revisar
+
+            await api.updateManySettings(settingsToSave);
+            showNotification('Configuración guardada correctamente', 'success');
+        } catch (error) {
+            console.error('[Settings] Error al guardar configuración:', error);
+            showNotification('Error al guardar la configuración', 'error');
+        }
+    });
+
+    // --------- Inicialización ---------
+    loadSettings();
+  </script>
+
+  <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: bold;
+            margin: var(--spacing-sm) 0;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+        }
+    </style>
+</body>
+</html>

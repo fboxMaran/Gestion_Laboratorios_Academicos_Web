@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisión y Auditoría - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>📋 Administracion de laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <a href="./notifications.html" class="navbar-notifications">
+                    🔔
+                </a>
+                <div class="navbar-user">
+                    <span id="userName">Administrador</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./administration.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_users.html">
+                    <span class="sidebar-icon">👥</span>
+                    <span>Usuarios</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_settings.html">
+                    <span class="sidebar-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./admin_audit.html">
+                    <span class="sidebar-icon">🕵️</span>
+                    <span>Supervisión / Auditoría</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <div>
+                    <h1>🕵️ Supervisión y Auditoría</h1>
+                    <p class="text-secondary">
+                        Monitora accesos, cambios y acciones críticas registradas en el sistema.
+                    </p>
+                </div>
+                <div class="page-header-actions">
+                    <button id="btnReload" class="btn btn-sm btn-outline">
+                        🔄 Recargar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros de auditoría -->
+            <section class="card mt-md">
+                <div class="card-body">
+                    <h2>Filtros de auditoría</h2>
+                    <p class="text-secondary">
+                        Filtra la bitácora por usuario, módulo, tipo de acción o rango de fechas.
+                    </p>
+
+                    <div class="grid grid-cols-4 gap-md mt-md">
+                        <div class="form-group">
+                            <label for="filterUser">Usuario</label>
+                            <select id="filterUser" class="input">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="filterEntityType">Módulo / Entidad</label>
+                            <input
+                                type="text"
+                                id="filterEntityType"
+                                class="input"
+                                placeholder="Ej: SETTINGS, USERS, LAB, REQUEST"
+                            />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="filterAction">Acción</label>
+                            <select id="filterAction" class="input">
+                                <option value="">Todas</option>
+                                <option value="CREATE">CREATE</option>
+                                <option value="UPDATE">UPDATE</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="LOGIN">LOGIN</option>
+                                <option value="LOGIN_FAILED">LOGIN_FAILED</option>
+                                <option value="UNAUTHORIZED_ACCESS">UNAUTHORIZED_ACCESS</option>
+                                <option value="SETTING_CHANGED">SETTING_CHANGED</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rango de fechas</label>
+                            <div class="grid grid-cols-2 gap-sm">
+                                <input type="date" id="filterFrom" class="input" />
+                                <input type="date" id="filterTo" class="input" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-md" style="text-align: right;">
+                        <button id="btnFilter" class="btn btn-primary">
+                            Aplicar filtros
+                        </button>
+                        <button id="btnClearFilters" class="btn btn-outline">
+                            Limpiar filtros
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabla de auditoría -->
+            <section class="card mt-lg">
+                <div class="card-header">
+                    <div>
+                        <h3>Bitácora de actividad (audit_log)</h3>
+                        <p class="text-secondary" id="auditSummary">
+                            Usa los filtros para consultar la bitácora.
+                        </p>
+                    </div>
+                    <div class="card-header-actions">
+                        <button id="btnExportCsv" class="btn btn-secondary">
+                            Exportar Excel (CSV)
+                        </button>
+                        <button id="btnExportPdf" class="btn btn-outline">
+                            Exportar PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha y hora</th>
+                                <th>Usuario</th>
+                                <th>Módulo / Entidad</th>
+                                <th>Acción</th>
+                                <th>ID Entidad</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary">
+                                    No se han realizado consultas aún.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Alertas automáticas -->
+            <section class="card mt-md">
+                <div class="card-body">
+                    <div class="flex justify-between items-center">
+                        <h2>Alertas automáticas</h2>
+                        <span class="badge badge-error" id="alertCount">0</span>
+                    </div>
+                    <p class="text-secondary">
+                        Intentos de acceso no autorizado y cambios en configuraciones críticas.
+                    </p>
+
+                    <ul id="alertList" class="mt-md">
+                        <li class="text-secondary">Sin alertas recientes.</li>
+                    </ul>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Lógica de la página -->
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+        import { showNotification, formatDate } from '../assets/js/utils.js';
+        import { API_CONFIG } from '../assets/js/config.js';
+
+        // ==================== SESIÓN ====================
+        requireAuth();
+        window.logout = authLogout;
+
+        const currentUser = getCurrentUser();
+        if (currentUser && document.getElementById('userName')) {
+            document.getElementById('userName').textContent =
+                currentUser.name || currentUser.full_name || currentUser.email || 'Usuario';
+        }
+
+        // ==================== DOM HELPERS ====================
+        const $ = (id) => document.getElementById(id);
+
+        const filterUserEl       = $('filterUser');
+        const filterEntityTypeEl = $('filterEntityType');
+        const filterActionEl     = $('filterAction');
+        const filterFromEl       = $('filterFrom');
+        const filterToEl         = $('filterTo');
+
+        const auditTableBody = $('auditTableBody');
+        const auditSummary   = $('auditSummary');
+        const alertList      = $('alertList');
+        const alertCount     = $('alertCount');
+
+        const btnFilter       = $('btnFilter');
+        const btnClearFilters = $('btnClearFilters');
+        const btnReload       = $('btnReload');
+        const btnExportCsv    = $('btnExportCsv');
+        const btnExportPdf    = $('btnExportPdf');
+
+        // ==================== ESTADO ====================
+        let auditData = [];
+        let usersById = new Map();
+        let lastQueryString = '';
+
+        // ==================== USUARIOS PARA FILTRO ====================
+        async function loadUsersFilter() {
+            try {
+                const users = await api.getUsers({ limit: 500 });
+                usersById = new Map((users || []).map(u => [u.id, u]));
+
+                (users || []).forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = `${u.full_name || u.name || u.email} (${u.email})`;
+                    filterUserEl.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Error cargando usuarios para filtro', err);
+                showNotification('No se pudieron cargar los usuarios para el filtro', 'warning');
+            }
+        }
+
+        function getUserLabel(userId, fallbackName) {
+            if (!userId && !fallbackName) return '-';
+            const u = usersById.get(userId);
+            if (u) {
+                return u.full_name || u.name || u.email || `ID ${userId}`;
+            }
+            if (fallbackName) return fallbackName;
+            return userId ? `ID ${userId}` : '-';
+        }
+
+        // ==================== FILTROS ====================
+        function collectFilters() {
+            const filters = {};
+            if (filterUserEl.value)       filters.user_id     = filterUserEl.value;
+            if (filterEntityTypeEl.value) filters.entity_type = filterEntityTypeEl.value.trim();
+            if (filterActionEl.value)     filters.action      = filterActionEl.value;
+            if (filterFromEl.value)       filters.from        = filterFromEl.value;
+            if (filterToEl.value)         filters.to          = filterToEl.value;
+
+            filters.limit = 200;
+            filters.offset = 0;
+            return filters;
+        }
+
+        // ==================== CARGA DE AUDITORÍA ====================
+        async function loadAudit(filters = {}) {
+            try {
+                const params = new URLSearchParams(filters);
+                lastQueryString = params.toString();
+
+                const data = await api.getAuditLogs(filters);
+
+                auditData = Array.isArray(data) ? data : [];
+                renderAuditTable();
+                renderAlerts();
+
+                showNotification(`Se cargaron ${auditData.length} eventos de auditoría`, 'success');
+            } catch (err) {
+                console.error('Error cargando auditoría', err);
+                auditData = [];
+                renderAuditTable();
+                renderAlerts();
+                showNotification(err.message || 'Error al cargar la bitácora de auditoría', 'error');
+            }
+        }
+
+        // ==================== ALERTAS ====================
+        const ALERT_ACTIONS = [
+            'LOGIN_FAILED',
+            'UNAUTHORIZED_ACCESS',
+            'SECURITY_ALERT',
+            'SETTING_CHANGED',
+            'CRITICAL_SETTING_CHANGED'
+        ];
+
+        function isAlertRow(row) {
+            const action = String(row.action || '').toUpperCase();
+            return ALERT_ACTIONS.includes(action);
+        }
+
+        // ==================== RENDER: TABLA ====================
+        function renderAuditTable() {
+            if (!auditData.length) {
+                auditSummary.textContent = '0 eventos encontrados.';
+                auditTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary">
+                            No se encontraron registros para los filtros seleccionados.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            auditSummary.textContent = `${auditData.length} evento(s) encontrados.`;
+
+            auditTableBody.innerHTML = auditData.map(row => {
+                const isAlert = isAlertRow(row);
+                const rowClass = isAlert ? 'audit-row alert-row' : 'audit-row';
+
+                // Fecha / hora
+                let dateStr;
+                try {
+                    if (typeof formatDate === 'function') {
+                        dateStr = formatDate(row.created_at, 'DD/MM/YYYY HH:mm');
+                    } else {
+                        dateStr = new Date(row.created_at).toLocaleString('es-CR');
+                    }
+                } catch {
+                    dateStr = row.created_at || '-';
+                }
+
+                // Usuario
+                const userLabel = getUserLabel(row.user_id, row.user_name);
+
+                // modulo
+                const module = row.module || '-';
+
+                // Entidad / módulo
+                const action     = row.action || '-';
+                const entityType = row.entity_type || '-';
+                const entityId   = row.entity_id ?? '-';
+
+                // Detalle
+                let detailText = '-';
+                if (typeof row.detail === 'string' && row.detail.trim() !== '') {
+                    detailText = row.detail;
+                } else if (row.detail) {
+                    try {
+                        detailText = JSON.stringify(row.detail);
+                    } catch {
+                        detailText = String(row.detail);
+                    }
+                }
+
+                return `
+                    <tr class="${rowClass}">
+                        <td>${dateStr}</td>
+                        <td>${userLabel}</td>
+                        <td>${module}</td>
+                        <td>${action}</td>
+                        <td>${entityId}</td>
+                        <td class="text-sm">${detailText}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ==================== RENDER: ALERTAS ====================
+        function renderAlerts() {
+            const alerts = auditData.filter(isAlertRow).slice(0, 10);
+
+            alertCount.textContent = alerts.length;
+
+            if (!alerts.length) {
+                alertList.innerHTML = `
+                    <li class="text-secondary">Sin alertas recientes.</li>
+                `;
+                return;
+            }
+
+            alertList.innerHTML = alerts.map(row => {
+                let dateStr;
+                try {
+                    dateStr = typeof formatDate === 'function'
+                        ? formatDate(row.created_at, 'DD/MM/YYYY HH:mm')
+                        : new Date(row.created_at).toLocaleString('es-CR');
+                } catch {
+                    dateStr = row.created_at || '-';
+                }
+
+                const userLabel = getUserLabel(row.user_id, row.user_name);
+
+                return `
+                    <li class="alert-item">
+                        <strong>${row.action}</strong> – ${row.entity_type || '-'} (#${row.entity_id || '-'})<br>
+                        <small>
+                            ${dateStr} · ${userLabel}
+                        </small>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // ==================== EXPORTACIONES ====================
+        function exportCsv() {
+            if (!lastQueryString) {
+                showNotification('Aplica primero un filtro antes de exportar.', 'info');
+                return;
+            }
+            const url = `${API_CONFIG.BASE_URL}/admin/audit?${lastQueryString}&format=csv`;
+            window.open(url, '_blank');
+        }
+
+        function exportPdf() {
+            if (!auditData.length) {
+                showNotification('No hay datos para exportar.', 'warning');
+                return;
+            }
+            window.print(); // el usuario luego elige "Guardar como PDF"
+        }
+
+        // ==================== EVENTOS ====================
+        btnFilter?.addEventListener('click', () => {
+            const filters = collectFilters();
+            loadAudit(filters);
+        });
+
+        btnClearFilters?.addEventListener('click', () => {
+            filterUserEl.value       = '';
+            filterEntityTypeEl.value = '';
+            filterActionEl.value     = '';
+            filterFromEl.value       = '';
+            filterToEl.value         = '';
+            auditData = [];
+            lastQueryString = '';
+            renderAuditTable();
+            renderAlerts();
+            showNotification('Filtros limpiados', 'info');
+        });
+
+        btnReload?.addEventListener('click', () => {
+            const filters = collectFilters();
+            loadAudit(filters);
+        });
+
+        btnExportCsv?.addEventListener('click', exportCsv);
+        btnExportPdf?.addEventListener('click', exportPdf);
+
+        // ==================== INICIAL ====================
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadUsersFilter();
+            // Cargar últimos eventos sin filtro específico (ej: últimos 100)
+            loadAudit({ limit: 100 });
+        });
+    </script>
+
+    <style>
+        /* Mismo estilo base que en admin_users, más unos extras para alertas */
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .audit-row.alert-row {
+            background-color: rgba(255, 0, 0, 0.04);
+        }
+
+        .alert-item {
+            padding: var(--spacing-xs) 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .alert-item:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>📋 Administracion de laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <a href="./notifications.html" class="navbar-notifications">
+                    🔔
+                </a>
+                <div class="navbar-user">
+                    <span id="userName">Cargando...</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./administration.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item active">
+                <a href="./admin_profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_users.html">
+                    <span class="sidebar-icon">👥</span>
+                    <span>Usuarios</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_settings.html">
+                    <span class="sidebar-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_audit.html">
+                    <span class="sidebar-icon">🕵️</span>
+                    <span>Supervisión / Auditoría</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <div>
+                    <h1>👤 Mi Perfil - <span id="profileHeaderName">Cargando...</span></h1>
+                    <p class="text-secondary">Gestiona tu información personal y revisa tu actividad</p>
+                </div>
+            </div>
+
+            <!-- Estadísticas Rápidas -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3>📊 Resumen de Actividad</h3>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-cols-3">
+                        <div class="stat-box">
+                            <div class="stat-icon">📋</div>
+                            <h4 class="stat-number" id="totalRequests">0</h4>
+                            <p class="text-secondary">Solicitudes Totales</p>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">📚</div>
+                            <h4 class="stat-number" id="totalReservations">0</h4>
+                            <p class="text-secondary">Reservas Completadas</p>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-icon">🎓</div>
+                            <h4 class="stat-number" id="totalTrainings">0</h4>
+                            <p class="text-secondary">Capacitaciones</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información Personal -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h2>📝 Información Personal</h2>
+                    <button class="btn btn-primary" id="editBtn" onclick="toggleEditMode()">Editar</button>
+                </div>
+                <div class="card-body">
+                    <form id="profileForm" class="profile-form">
+                        <div class="grid grid-cols-2">
+                            <div class="form-group">
+                                <label>Nombre Completo *</label>
+                                <input type="text" id="fullName" class="form-control" required disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Carné / Identificación *</label>
+                                <input type="text" id="studentId" class="form-control" required disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Correo Electrónico *</label>
+                                <input type="email" id="email" class="form-control" required disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="tel" id="phone" class="form-control" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Departamento / Carrera *</label>
+                                <select id="department" class="form-control" required disabled>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Ingeniería en Computación">Ingeniería en Computación</option>
+                                    <option value="Ingeniería Electrónica">Ingeniería Electrónica</option>
+                                    <option value="Ingeniería Mecatrónica">Ingeniería Mecatrónica</option>
+                                    <option value="Ingeniería Ambiental">Ingeniería Ambiental</option>
+                                    <option value="Administración">Administración</option>
+                                    <option value="Biología">Biología</option>
+                                    <option value="Química">Química</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Rol</label>
+                                <input type="text" id="role" class="form-control" disabled>
+                            </div>
+                        </div>
+                        <div class="form-actions" id="formActions" style="display: none;">
+                            <button type="button" class="btn btn-outline" onclick="cancelEdit()">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Actividad Reciente -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h2>🕐 Actividad Reciente</h2>
+                    <a href="./history.html" class="btn btn-outline btn-sm">Ver Todo</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentActivity">
+                                <tr>
+                                    <td colspan="4" class="text-center">Cargando actividad reciente...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { formatDate, showNotification } from '../assets/js/utils.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+
+        // Verificar autenticación
+        requireAuth();
+
+        // Hacer logout disponible globalmente
+        window.logout = authLogout;
+
+        // Variables globales
+        let originalData = {};
+        let isEditMode = false;
+
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const profile = await api.getProfile();
+                const userName = profile.name || 'Usuario';
+                
+                // Actualizar nombre en el navbar
+                document.getElementById('userName').textContent = userName;
+                
+                // Actualizar nombre en el header del perfil
+                document.getElementById('profileHeaderName').textContent = userName;
+                
+                return profile;
+            } catch (error) {
+                console.error('[Profile] Error al cargar información del usuario:', error);
+                const user = getCurrentUser();
+                if (user) {
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('profileHeaderName').textContent = user.name;
+                }
+                throw error;
+            }
+        }
+
+        // Cargar perfil
+        async function loadProfile() {
+            try {
+                console.log('[Profile] Cargando perfil del usuario...');
+                
+                // Cargar datos del perfil
+                const profile = await loadUserInfo();
+                console.log('[Profile] Perfil recibido:', profile);
+
+                // Llenar formulario
+                document.getElementById('fullName').value = profile.name || 'N/A';
+                document.getElementById('studentId').value = profile.student_id || profile.id || 'N/A';
+                document.getElementById('email').value = profile.email || 'N/A';
+                document.getElementById('phone').value = profile.phone || '';
+                document.getElementById('department').value = profile.department || '';
+                document.getElementById('role').value = profile.role || 'N/A';
+
+                // Guardar datos originales
+                originalData = { ...profile };
+                console.log('[Profile] Datos originales guardados');
+
+                // Cargar estadísticas
+                await loadStatistics();
+
+                // Cargar actividad reciente
+                await loadRecentActivity();
+
+            } catch (error) {
+                console.error('[Profile] Error al cargar perfil:', error);
+                showNotification('Error al cargar información del perfil', 'error');
+            }
+        }
+
+        // Cargar estadísticas
+        async function loadStatistics() {
+            try {
+                // Cargar solicitudes
+                const requests = await api.getRequests();
+                document.getElementById('totalRequests').textContent = requests.length;
+
+                // Cargar historial
+                const history = await api.getHistory();
+                const reservations = history.filter(h => h.type === 'reservation').length;
+                const trainings = history.filter(h => h.type === 'training').length;
+                
+                document.getElementById('totalReservations').textContent = reservations;
+                document.getElementById('totalTrainings').textContent = trainings;
+
+            } catch (error) {
+                console.error('Error al cargar estadísticas:', error);
+            }
+        }
+
+        // Cargar actividad reciente (últimas 5 actividades)
+        async function loadRecentActivity() {
+            try {
+                const history = await api.getHistory();
+                const requests = await api.getRequests();
+
+                // Combinar y ordenar por fecha
+                const allActivity = [
+                    ...history.map(h => ({
+                        type: h.type === 'reservation' ? '📚 Reserva' : '🎓 Capacitación',
+                        description: h.resource_name || h.title,
+                        date: h.date,
+                        status: h.status
+                    })),
+                    ...requests.map(r => ({
+                        type: '📋 Solicitud',
+                        description: r.resource_name,
+                        date: r.created_at,
+                        status: r.status
+                    }))
+                ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+                const tbody = document.getElementById('recentActivity');
+                
+                if (allActivity.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay actividad reciente</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = allActivity.map(activity => `
+                    <tr>
+                        <td>${activity.type}</td>
+                        <td>${activity.description}</td>
+                        <td>${formatDate(activity.date, 'DD/MM/YYYY')}</td>
+                        <td>
+                            <span class="badge badge-${activity.status}">
+                                ${getStatusText(activity.status)}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error al cargar actividad reciente:', error);
+            }
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Pendiente',
+                'approved': 'Aprobada',
+                'rejected': 'Rechazada',
+                'completed': 'Completada',
+                'cancelled': 'Cancelada',
+                'no-show': 'No asistió'
+            };
+            return statusMap[status] || status;
+        }
+
+        // Modo de edición
+        window.toggleEditMode = function() {
+            isEditMode = !isEditMode;
+            
+            const fields = ['fullName', 'studentId', 'email', 'phone', 'department'];
+            const editBtn = document.getElementById('editBtn');
+            const formActions = document.getElementById('formActions');
+
+            if (isEditMode) {
+                // Activar modo edición
+                fields.forEach(field => {
+                    const input = document.getElementById(field);
+                    if (field !== 'email' && field !== 'studentId') { // Email y carné no se pueden editar
+                        input.disabled = false;
+                    }
+                });
+                editBtn.style.display = 'none';
+                formActions.style.display = 'flex';
+            } else {
+                // Desactivar modo edición
+                fields.forEach(field => {
+                    document.getElementById(field).disabled = true;
+                });
+                editBtn.style.display = 'inline-block';
+                formActions.style.display = 'none';
+            }
+        };
+
+        window.cancelEdit = function() {
+            // Restaurar datos originales
+            document.getElementById('fullName').value = originalData.name;
+            document.getElementById('phone').value = originalData.phone || '';
+            document.getElementById('department').value = originalData.department || '';
+            
+            toggleEditMode();
+        };
+
+        // Guardar cambios del perfil
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                console.log('[Profile] Guardando cambios...');
+                
+                const updatedData = {
+                    name: document.getElementById('fullName').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    department: document.getElementById('department').value
+                };
+
+                console.log('[Profile] Datos a enviar:', updatedData);
+
+                const result = await api.updateProfile(updatedData);
+                console.log('[Profile] Respuesta del servidor:', result);
+                
+                // Actualizar datos originales
+                originalData = { ...originalData, ...updatedData };
+                
+                // Actualizar nombre en el header y navbar
+                document.getElementById('profileHeaderName').textContent = updatedData.name;
+                document.getElementById('userName').textContent = updatedData.name;
+
+                showNotification('Perfil actualizado exitosamente', 'success');
+                toggleEditMode();
+
+            } catch (error) {
+                console.error('[Profile] Error al actualizar perfil:', error);
+                showNotification('Error al actualizar el perfil: ' + (error.message || 'Error desconocido'), 'error');
+            }
+        });
+
+        // Cargar perfil al iniciar la página
+        loadProfile();
+
+    </script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .page-header {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: var(--spacing-md);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-3xl);
+            font-weight: bold;
+            color: var(--primary);
+            margin: var(--spacing-xs) 0;
+        }
+
+        .profile-form {
+            max-width: 100%;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .span-2 {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+
+            .grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .span-2 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</body>
+</html>

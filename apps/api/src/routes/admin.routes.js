@@ -31,9 +31,11 @@ r.put('/roles/:role/permissions', /*requireAuth, requireAdmin,*/ usersCtrl.setRo
 r.get('/settings', /*requireAuth, requireAdmin,*/ settingsCtrl.list);
 r.get('/settings/:key', /*requireAuth, requireAdmin,*/ settingsCtrl.get);
 r.put('/settings/:key', /*requireAuth, requireAdmin,*/ settingsCtrl.upsert);
+r.put('/updateManySettings', /*requireAuth, requireAdmin,*/ settingsCtrl.updateMany);
 
 // ==== 4.3 Supervisión / Auditoría ====
 // Consulta changelog con filtros y export CSV
 r.get('/audit', /*requireAuth, requireAdmin,*/ auditCtrl.search);
+r.post('/audit', /*requireAuth, requireAdmin,*/ auditCtrl.insertAuditLog);
 
 module.exports = r;

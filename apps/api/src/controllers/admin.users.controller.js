@@ -21,7 +21,7 @@ async function logChange({ entity_type, entity_id, user_id, action, detail }) {
   } catch { /* noop */ }
 }
 
-exports.list = async (req, res) => {
+exports.list = async (req, res) => {  
   const { q, role, active, limit = 50, offset = 0 } = req.query;
   const params = [];
   const where = [];
@@ -136,15 +136,43 @@ exports.create = async (req, res) => {
   }
 };
 
-exports.update = async (req, res) => {
+exports.update = async (req, res) => {  
   const id = Number(req.params.id);
   const payload = req.body || {};
   
-  // Mapeo de campos
+  // 1) Resolver qué valor va a ir en id_code (carné / código)
+  let idCodeValue;
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'student_id')) {
+    idCodeValue = payload.student_id;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, 'teacher_code')) {
+    // Si viene teacher_code, le damos prioridad
+    idCodeValue = payload.teacher_code;
+  }
+
+  // 2) Si viene "role" por nombre, buscar el role_id en la tabla role
+  let roleId = null;
+  if (typeof payload.role === 'string' && payload.role.trim() !== '') {
+    const roleName = payload.role.trim();
+
+    const roleResult = await pool.query(
+      'SELECT id FROM role WHERE name = $1',
+      [roleName]
+    );
+
+    if (!roleResult.rowCount) {
+      // No existe ese rol en la tabla
+      return res.status(400).json({ error: `Rol inválido: ${roleName}` });
+    }
+
+    roleId = roleResult.rows[0].id;
+  }
+
+  // 3) Mapeo de campos directos (SIN student_id / teacher_code / role)
+  //    Estos son los campos que se actualizan directo en app_user
   const fieldMap = {
     'full_name': 'full_name',
-    'student_id': 'id_code',
-    'teacher_code': 'id_code',
     'program_department': 'career_or_dept',
     'phone': 'phone',
     'is_active': 'is_active'
@@ -153,6 +181,7 @@ exports.update = async (req, res) => {
   const sets = [];
   const params = [];
   
+  // 4) Construir SET para los campos simples
   Object.keys(payload).forEach((k) => {
     const dbField = fieldMap[k];
     if (dbField && Object.prototype.hasOwnProperty.call(payload, k)) {
@@ -160,28 +189,53 @@ exports.update = async (req, res) => {
       sets.push(`${dbField} = $${params.length}`);
     }
   });
+
+  // 5) Agregar id_code solo una vez si hay valor
+  if (idCodeValue !== undefined) {
+    params.push(idCodeValue);
+    sets.push(`id_code = $${params.length}`);
+  }
+
+  // 6) Agregar role_id si se envió un role válido
+  if (roleId !== null) {
+    params.push(roleId);
+    sets.push(`role_id = $${params.length}`);
+  }
   
-  if (!sets.length) return res.status(400).json({ error: 'Nada para actualizar' });
+  // 7) Si no hay nada que actualizar, error 400
+  if (!sets.length) {
+    return res.status(400).json({ error: 'Nada para actualizar' });
+  }
 
+  // 8) Agregar id al final para el WHERE
   params.push(id);
-
+  
   const { rows } = await pool.query(
-    `UPDATE app_user SET ${sets.join(', ')}, updated_at=NOW() 
-     WHERE id=$${params.length} 
+    `UPDATE app_user 
+     SET ${sets.join(', ')}, updated_at = NOW()
+     WHERE id = $${params.length}
      RETURNING id, role_id, email, full_name, id_code, career_or_dept, phone, is_active, updated_at`,
     params
   );
   
-  if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
+  if (!rows.length) {
+    return res.status(404).json({ error: 'Usuario no encontrado' });
+  }
 
-  await logChange({ entity_type: 'user', entity_id: id, user_id: actorId(req), action: 'UPDATE', detail: payload });
+  await logChange({
+    entity_type: 'user',
+    entity_id: id,
+    user_id: actorId(req),
+    action: 'UPDATE',
+    detail: payload
+  });
   
-  // Obtener role name
+  // 9) Obtener el nombre del rol a partir del role_id actualizado
   const roleQuery = await pool.query('SELECT name FROM role WHERE id = $1', [rows[0].role_id]);
   
   const response = {
     id: rows[0].id,
-    role: roleQuery.rows[0]?.name || 'Estudiante',
+    role: roleQuery.rows[0]?.name || 'Estudiante',  // ← nombre del rol según BD
     email: rows[0].email,
     full_name: rows[0].full_name,
     student_id: rows[0].id_code,

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Gestión de Laboratorios</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <h2>📋 Administracion de laboratorios</h2>
+            </div>
+            <div class="navbar-menu">
+                <a href="./notifications.html" class="navbar-notifications">
+                    🔔
+                </a>
+                <div class="navbar-user">
+                    <span id="userName">Administrador</span>
+                    <button class="btn btn-sm btn-outline" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="./administration.html">
+                    <span class="sidebar-icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item ">
+                <a href="./admin_profile.html">
+                    <span class="sidebar-icon">👤</span>
+                    <span>Mi Perfil</span>
+                </a>
+            </li>
+            <!-- NUEVO: opción de administración de usuarios -->
+            <li class="sidebar-item active">
+                <a href="./admin_users.html">
+                    <span class="sidebar-icon">👥</span>
+                    <span>Usuarios</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_settings.html">
+                    <span class="sidebar-icon">⚙️</span>
+                    <span>Configuración</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="./admin_audit.html">
+                    <span class="sidebar-icon">🕵️</span>
+                    <span>Supervisión / Auditoría</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <div>
+                    <h1>👥 Gestión de Usuarios</h1>
+                    <p class="text-secondary">
+                        Modifica roles, permisos y estado de los usuarios del sistema.
+                    </p>
+                </div>
+                <div class="page-header-actions">
+                    <button id="btnReload" class="btn btn-sm btn-outline">
+                        🔄 Recargar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="filters-row">
+                        <div class="form-group">
+                            <label for="userSearch">Buscar por nombre o correo</label>
+                            <input type="text" id="userSearch" class="input" placeholder="Ej: Juan, usuario@demo.edu">
+                        </div>
+                        <div class="form-group">
+                            <label for="roleFilter">Filtrar por rol</label>
+                            <select id="roleFilter" class="input">
+                                <option value="">Todos</option>
+                                <option value="Estudiante">Estudiante</option>
+                                <option value="Docente">Docente</option>
+                                <option value="Asistente">Asistente</option>
+                                <option value="EncargadoTecnico">Encargado Técnico</option>
+                                <option value="Admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="statusFilter">Estado</label>
+                            <select id="statusFilter" class="input">
+                                <option value="all">Todos</option>
+                                <option value="active">Solo activos</option>
+                                <option value="inactive">Solo inactivos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de usuarios -->
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3>Listado de usuarios</h3>
+                    <p class="text-secondary">Haz clic en guardar para aplicar los cambios de cada usuario.</p>
+                </div>
+                <div class="card-body table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Correo</th>
+                                <th>Rol</th>
+                                <!-- <th>Permisos</th> -->
+                                <th>Estado</th>
+                                <th style="width: 160px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-secondary">
+                                    Cargando usuarios...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- NUEVO: Formulario de creación de usuario -->
+            <div class="card mt-lg">
+            <div class="card-header">
+                <h3>Crear nuevo usuario</h3>
+                <p class="text-secondary">Completa los datos básicos y asigna un rol.</p>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-2 gap-md">
+                <div class="form-group">
+                    <label for="newUserName">Nombre completo</label>
+                    <input type="text" id="newUserName" class="input" placeholder="Ej: Juan Pérez">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserEmail">Correo institucional</label>
+                    <input type="email" id="newUserEmail" class="input" placeholder="usuario@tec.ac.cr">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserPassword">Contraseña</label>
+                    <input type="password" id="newUserPassword" class="input" placeholder="Contraseña segura">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserRole">Rol</label>
+                    <select id="newUserRole" class="input">
+                    <option value="">Selecciona un rol</option>
+                    <option value="Estudiante">Estudiante</option>
+                    <option value="Docente">Docente</option>
+                    <option value="Encargado Técnico">Encargado Técnico</option>
+                    <option value="Admin">Administrador</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserIdCode">Identificación (carné / código)</label>
+                    <input type="text" id="newUserIdCode" class="input" placeholder="Ej: 2024123456 o PROF-01">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserDept">Carrera / Departamento</label>
+                    <input type="text" id="newUserDept" class="input" placeholder="Ej: Ing. en Construcción">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserPhone">Teléfono</label>
+                    <input type="text" id="newUserPhone" class="input" placeholder="Opcional">
+                </div>
+
+                <div class="form-group">
+                    <label for="newUserStatus">Estado</label>
+                    <select id="newUserStatus" class="input">
+                    <option value="active">Activo</option>
+                    <option value="inactive">Inactivo</option>
+                    </select>
+                </div>
+                </div>
+
+                <div class="mt-md" style="text-align: right;">
+                <button id="btnCreateUser" class="btn btn-primary">
+                    ➕ Crear usuario
+                </button>
+                </div>
+            </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Lógica de la página -->
+    <script type="module">
+        import api from '../assets/js/api.js';
+        import { requireAuth, getCurrentUser, logout as authLogout } from '../assets/js/auth.js';
+        import { showNotification } from '../assets/js/utils.js';
+
+        // ==================== SESIÓN ====================
+        requireAuth();
+        window.logout = authLogout;
+
+        const currentUser = getCurrentUser();
+        if (currentUser && document.getElementById('userName')) {
+            document.getElementById('userName').textContent = currentUser.name || 'Usuario';
+        }
+
+        // Opcional: solo permitir acceso a admin
+        if (currentUser && currentUser.role && currentUser.role.toLowerCase() !== 'admin') {
+            showNotification('No tienes permisos para administrar usuarios', 'error');
+            // Puedes redirigir si quieres:
+            // window.location.href = './dashboard.html';
+        }
+
+        // ==================== CONSTANTES ====================
+        const ROLE_OPTIONS = [
+            { value: 'Estudiante', label: 'Estudiante' },
+            { value: 'Docente', label: 'Docente' },
+            { value: 'EncargadoTecnico', label: 'Encargado Técnico' },
+            { value: 'Admin', label: 'Administrador' },
+        ];
+
+        // Estos permisos son ejemplos; ajústalos a lo que tengas en el backend
+        const PERMISSION_OPTIONS = [
+            { key: 'canCreateRequests', label: 'Crear solicitudes' },
+            { key: 'canApproveRequests', label: 'Aprobar solicitudes' },
+            { key: 'canManageInventory', label: 'Gestionar inventario' },
+            { key: 'canManageUsers', label: 'Administrar usuarios' },
+        ];
+
+        // ==================== ESTADO ====================
+        let allUsers = [];
+
+        const userTableBody = document.getElementById('userTableBody');
+        const searchInput   = document.getElementById('userSearch');
+        const roleFilter    = document.getElementById('roleFilter');
+        const statusFilter  = document.getElementById('statusFilter');
+        const btnReload     = document.getElementById('btnReload');
+
+        // Campos de nuevo usuario
+        const newUserName   = document.getElementById('newUserName');
+        const newUserEmail  = document.getElementById('newUserEmail');
+        const newUserPassword = document.getElementById('newUserPassword');
+        const newUserRole   = document.getElementById('newUserRole');
+        const newUserIdCode = document.getElementById('newUserIdCode');
+        const newUserDept   = document.getElementById('newUserDept');
+        const newUserPhone  = document.getElementById('newUserPhone');
+        const newUserStatus = document.getElementById('newUserStatus');
+        const btnCreateUser = document.getElementById('btnCreateUser');
+
+        // ==================== CARGA DE USUARIOS ====================
+        async function loadUsers() {
+            userTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-secondary">
+                        Cargando usuarios...
+                    </td>
+                </tr>
+            `;
+
+            try {
+                // NUEVO MÉTODO en api.js: api.getUsers()
+                const users = await api.getUsers();
+                // Normalizamos propiedades
+                allUsers = (users || []).map(u => ({
+                    ...u,
+                    is_active: typeof u.is_active === 'boolean' ? u.is_active : true,
+                    permissions: Array.isArray(u.permissions) ? u.permissions : [],
+                }));
+
+                renderUsers();
+            } catch (error) {
+                console.error('Error al cargar usuarios:', error);
+                userTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-error">
+                            Error al cargar usuarios: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // ==================== RENDERIZADO ====================
+        function renderUsers() {
+            const search = (searchInput.value || '').toLowerCase();
+            const role   = roleFilter.value;
+            const status = statusFilter.value;
+
+            const filtered = allUsers.filter(user => {
+                //excluir siempre al usuario actual
+                if (currentUser && currentUser.id != null &&
+                    String(user.id) === String(currentUser.id)) {
+                    return false;
+                }
+
+                const matchesSearch =
+                    !search ||
+                    user.full_name?.toLowerCase().includes(search) ||
+                    user.email?.toLowerCase().includes(search);
+
+                const matchesRole =
+                    !role || (user.role && user.role.toLowerCase() === role.toLowerCase());
+
+                const matchesStatus =
+                    status === 'all' ||
+                    (status === 'active'   && user.is_active) ||
+                    (status === 'inactive' && !user.is_active);
+
+                return matchesSearch && matchesRole && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                userTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary">
+                            No se encontraron usuarios con esos filtros.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            userTableBody.innerHTML = filtered.map(user => renderUserRow(user)).join('');
+        }
+
+        function renderUserRow(user) {
+            const permissionsSet = new Set(user.permissions || []);
+
+            const roleOptionsHtml = ROLE_OPTIONS.map(opt => `
+                <option value="${opt.value}" ${user.role === opt.value ? 'selected' : ''}>
+                    ${opt.label}
+                </option>
+            `).join('');
+
+            const permissionsHtml = PERMISSION_OPTIONS.map(p => `
+                <label>
+                    <input 
+                        type="checkbox" 
+                        class="perm-checkbox"
+                        data-permission="${p.key}"
+                        ${permissionsSet.has(p.key) ? 'checked' : ''}
+                    >
+                    ${p.label}
+                </label>
+            `).join('');
+
+            const stateClass = user.is_active ? 'badge-success' : 'badge-error';
+            const stateLabel = user.is_active ? 'Activo' : 'Inactivo';
+            const toggleLabel = user.is_active ? 'Desactivar' : 'Activar';
+
+            return `
+                <tr data-user-id="${user.id}">
+                    <td>
+                        <div><strong>${user.full_name || '-'}</strong></div>
+                        <div class="text-secondary text-sm">${user.department || ''}</div>
+                    </td>
+                    <td>${user.email || '-'}</td>
+                    <td>
+                        <select class="input role-select">
+                            ${roleOptionsHtml}
+                        </select>
+                    </td>
+                    <!--
+                    <td>
+                        <div class="permissions-list">
+                            ${permissionsHtml}
+                        </div>
+                    </td>
+                    -->
+                    <td>
+                        <span class="badge user-state-badge ${stateClass}">
+                            ${stateLabel}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline" data-action="toggle-active">
+                            ${toggleLabel}
+                        </button>
+                        <button class="btn btn-sm btn-primary" data-action="save">
+                            Guardar
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // ==================== EVENTOS ====================
+        // Filtros
+        searchInput?.addEventListener('input', () => renderUsers());
+        roleFilter?.addEventListener('change', () => renderUsers());
+        statusFilter?.addEventListener('change', () => renderUsers());
+
+        btnReload?.addEventListener('click', () => {
+            loadUsers();
+        });
+
+        btnCreateUser?.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleCreateUser();
+        });
+
+        // Delegación de eventos para botones de la tabla
+        userTableBody.addEventListener('click', async (event) => {
+            const btn = event.target.closest('button[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const row = btn.closest('tr[data-user-id]');
+            if (!row) return;
+
+            const userId = row.dataset.userId;
+            const user = allUsers.find(u => String(u.id) === String(userId));
+            if (!user) return;
+
+            try {
+                if (action === 'toggle-active') {
+                    await handleToggleActive(user, row, btn);
+                } else if (action === 'save') {
+                    await handleSaveUser(user, row, btn);
+                }
+            } catch (error) {
+                console.error('Error en acción de usuario:', error);
+                showNotification(error.message || 'Error al actualizar usuario', 'error');
+            }
+        });
+
+        async function handleToggleActive(user, row, button) {
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Guardando...';
+
+            const newIsActive = !user.is_active;
+
+            // Leemos también el rol y permisos actuales del row (para no perderlos)
+            const payload = extractUserChangesFromRow(row, { ...user, is_active: newIsActive });
+
+            // NUEVO MÉTODO: api.updateUser(id, data)
+            await api.updateUser(user.id, payload);
+
+            // Actualizamos en memoria
+            user.is_active = newIsActive;
+            user.role = payload.role;
+            user.permissions = payload.permissions;
+
+            api.insertAuditLog({
+                module: 'USER_MANAGEMENT',
+                entity: 'app_user',
+                entity_id: user.id,               // la entidad afectada
+                actor_user_id: currentUser?.id || null, // quién hizo la acción
+                action: 'UPDATE',
+                after_snapshot: {
+                    message: 'Se modifica el estado de actividad el usuario desde interfaz admin',
+                    user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    },
+                },
+            });
+
+            showNotification('Estado del usuario actualizado', 'success');
+            renderUsers(); // re-render para refrescar texto y colores
+
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+
+        async function handleSaveUser(user, row, button) {
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Guardando...';
+
+            const payload = extractUserChangesFromRow(row, user);
+
+            await api.updateUser(user.id, payload);
+
+            // Actualizamos en memoria
+            user.role = payload.role;
+            user.permissions = payload.permissions;
+            user.is_active = payload.is_active;
+
+            api.insertAuditLog({
+                module: 'USER_MANAGEMENT',
+                entity: 'app_user',
+                entity_id: user.id,               // la entidad afectada
+                actor_user_id: currentUser?.id || null, // quién hizo la acción
+                action: 'UPDATE',
+                after_snapshot: {
+                    message: 'Se modificaron los datos del usuario desde interfaz admin',
+                    user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    },
+                },
+            });
+
+            showNotification('Usuario actualizado correctamente', 'success');
+            renderUsers();
+
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+
+        async function handleCreateUser() {
+            if (!newUserName.value.trim() || !newUserEmail.value.trim() || !newUserRole.value) {
+                console.log(newUserName.value, newUserEmail.value, newUserRole.value);
+                showNotification('Nombre, correo y rol son obligatorios', 'error');
+                return;
+            }
+
+            const payload = {
+                full_name: newUserName.value.trim(),
+                email: newUserEmail.value.trim(),
+                password: newUserPassword.value.trim(),
+                role: newUserRole.value, // nombre del rol (lo resolverá el backend a role_id)
+                program_department: newUserDept.value.trim() || null,
+                phone: newUserPhone.value.trim() || null,
+                is_active: newUserStatus.value === 'active',
+            };
+
+            // Si quieres enviar id_code según el contexto:
+            if (newUserRole.value === 'Estudiante' && newUserIdCode.value.trim()) {
+                payload.student_id = newUserIdCode.value.trim();
+            } else if (newUserRole.value !== 'Estudiante' && newUserIdCode.value.trim()) {
+                payload.teacher_code = newUserIdCode.value.trim();
+            }
+
+            try {
+                btnCreateUser.disabled = true;
+                btnCreateUser.textContent = 'Creando...';
+
+                // Asumimos que tienes api.createUser configurado en api.js
+                const created = await api.createUser(payload);
+
+                // Metemos el nuevo usuario en la lista y renderizamos
+                allUsers.push({
+                ...created,
+                permissions: Array.isArray(created.permissions) ? created.permissions : [],
+                });
+
+                const currentUser = getCurrentUser(); // del auth.js del frontend
+
+                await api.insertAuditLog({
+                    module: 'USER_MANAGEMENT',
+                    entity: 'app_user',
+                    entity_id: created.id,               // la entidad afectada
+                    actor_user_id: currentUser?.id || null, // quién hizo la acción
+                    action: 'CREATE',
+                    after_snapshot: {
+                        message: 'Creación del usuario desde interfaz admin',
+                        user: {
+                        id: created.id,
+                        email: created.email,
+                        role: created.role,
+                        },
+                    },
+                });
+
+                showNotification('Usuario creado correctamente', 'success');
+                clearNewUserForm();
+                renderUsers();
+            } catch (error) {
+                console.error('Error al crear usuario:', error);
+                showNotification(error.message || 'Error al crear usuario', 'error');
+            } finally {
+                btnCreateUser.disabled = false;
+                btnCreateUser.textContent = '➕ Crear usuario';
+            }
+        }
+
+        function extractUserChangesFromRow(row, baseUser) {
+            const roleSelect = row.querySelector('.role-select');
+            const permCheckboxes = row.querySelectorAll('.perm-checkbox');
+
+            const role = roleSelect?.value || baseUser.role;
+            const permissions = [];
+
+            
+            permCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    permissions.push(cb.dataset.permission);
+                }
+            });
+
+            // Estado lo tomamos del usuario base o del badge
+            const stateBadge = row.querySelector('.user-state-badge');
+            const isActive = baseUser.isActive ?? (stateBadge?.textContent.trim() === 'Activo');
+
+            return {
+                ...baseUser,
+                role,
+                //permissions,
+                isActive
+            };
+        }
+
+        function clearNewUserForm() {
+            newUserName.value   = '';
+            newUserEmail.value  = '';
+            newUserPassword.value = '';
+            newUserRole.value   = '';
+            newUserIdCode.value = '';
+            newUserDept.value   = '';
+            newUserPhone.value  = '';
+            newUserStatus.value = 'active';
+        }
+
+        // Carga inicial
+        loadUsers();
+    </script>
+
+    <style>
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--navbar-height);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .navbar-container {
+            height: 100%;
+            padding: 0 var(--spacing-xl);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+        }
+
+        .navbar-menu {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-lg);
+        }
+
+        .navbar-notifications {
+            position: relative;
+            font-size: var(--font-size-2xl);
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: var(--font-size-xs);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: var(--navbar-height);
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .sidebar-menu {
+            padding: var(--spacing-lg) 0;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-item a {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md) var(--spacing-lg);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .sidebar-item a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active a {
+            background: var(--primary-light);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            font-size: var(--font-size-xl);
+            width: 24px;
+            text-align: center;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .stat-number {
+            font-size: var(--font-size-4xl);
+            font-weight: bold;
+            margin: var(--spacing-sm) 0;
+            color: var(--primary);
+        }
+
+        .permissions-list {
+            display: flex;
+            flex-direction: column;   /* 👈 uno debajo del otro */
+            align-items: flex-start;
+            gap: 4px;                 /* espacio vertical entre permisos */
+        }
+
+        .permissions-list label {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .navbar-brand h2 {
+                font-size: var(--font-size-lg);
+            }
+        }
+    </style>
+</body>
+</html>
