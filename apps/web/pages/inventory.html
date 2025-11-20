@@ -109,6 +109,7 @@
                     <div class="mt-md">
                         <button class="btn btn-primary" id="btnFilter">Aplicar Filtros</button>
                         <button class="btn btn-outline" id="btnClear">Limpiar</button>
+                        <button class="btn btn-primary" id="btnAddResource">➕ Añadir Recurso</button>
                     </div>
                 </div>
             </div>
@@ -136,6 +137,42 @@
         </div>
     </main>
     <script type="module" src="../assets/js/inventory.js"></script>
+    <!-- Modal Crear / Editar -->
+    <div id="inventoryModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modalTitle">Nuevo Recurso</h2>
+
+            <label>Nombre</label>
+            <input type="text" id="modalName">
+
+            <label>Descripción</label>
+            <textarea id="modalDescription"></textarea>
+
+            <label>Categoría</label>
+            <input type="text" id="modalCategory">
+
+            <label>Laboratorio</label>
+            <input type="text" id="modalLab">
+
+            <label>Cantidad Total</label>
+            <input type="number" id="modalTotal">
+
+            <label>Cantidad Disponible</label>
+            <input type="number" id="modalAvailable">
+
+            <label>Estado</label>
+            <select id="modalStatus">
+                <option value="available">Disponible</option>
+                <option value="maintenance">Mantenimiento</option>
+                <option value="out">Agotado</option>
+            </select>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="btnCancelModal">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveModal">Guardar</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

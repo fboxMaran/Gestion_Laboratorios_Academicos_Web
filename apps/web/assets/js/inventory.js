@@ -51,6 +51,7 @@ function renderInventory(data) {
             <td>${item.quantity_available} / ${item.quantity_total}</td>
             <td><span class="badge ${getStatusClass(item.status)}">${translateStatus(item.status)}</span></td>
             <td>
+                <button class="btn btn-sm btn-outline" onclick="showEdit(${item.id})">Editar</button>
                 <button class="btn btn-sm btn-outline" onclick="showDetails(${item.id})">Detalles</button>
                 <button class="btn btn-sm btn-error" onclick="deleteItem(${item.id})">Eliminar</button>
             </td>
@@ -183,6 +184,81 @@ window.deleteItem = function(id) {
         showNotification('Recurso eliminado', 'success');
     }
 }
+// ==================== CRUD ====================
+let editingId = null;
+
+// Abrir modal
+function openModal(isEdit = false, item = null) {
+    const modal = document.getElementById("inventoryModal");
+    modal.classList.remove("hidden");
+
+    document.getElementById("modalTitle").textContent = isEdit ? "Editar Recurso" : "Nuevo Recurso";
+
+    if (isEdit && item) {
+        editingId = item.id;
+        document.getElementById("modalName").value = item.name;
+        document.getElementById("modalDescription").value = item.description;
+        document.getElementById("modalCategory").value = item.category;
+        document.getElementById("modalLab").value = item.lab_name;
+        document.getElementById("modalTotal").value = item.quantity_total;
+        document.getElementById("modalAvailable").value = item.quantity_available;
+        document.getElementById("modalStatus").value = item.status;
+    } else {
+        editingId = null;
+        document.getElementById("modalName").value = "";
+        document.getElementById("modalDescription").value = "";
+        document.getElementById("modalCategory").value = "";
+        document.getElementById("modalLab").value = "";
+        document.getElementById("modalTotal").value = "";
+        document.getElementById("modalAvailable").value = "";
+        document.getElementById("modalStatus").value = "available";
+    }
+}
+
+// Cerrar modal
+function closeModal() {
+    document.getElementById("inventoryModal").classList.add("hidden");
+}
+
+// Guardar
+document.getElementById("btnSaveModal").addEventListener("click", () => {
+    const newItem = {
+        id: editingId ?? Date.now(),
+        name: modalName.value,
+        description: modalDescription.value,
+        category: modalCategory.value,
+        lab_name: modalLab.value,
+        quantity_total: Number(modalTotal.value),
+        quantity_available: Number(modalAvailable.value),
+        status: modalStatus.value,
+        image: "https://via.placeholder.com/200x150?text="+modalName.value // mock
+    };
+
+    if (editingId) {
+        // UPDATE
+        const idx = resources.findIndex(r => r.id === editingId);
+        resources[idx] = newItem;
+        showNotification("Recurso actualizado", "success");
+    } else {
+        // CREATE
+        resources.push(newItem);
+        showNotification("Recurso creado", "success");
+    }
+
+    renderInventory(resources);
+    closeModal();
+});
+
+document.getElementById("btnCancelModal").addEventListener("click", closeModal);
+
+// Botón para añadir recurso
+document.getElementById("btnAddResource").addEventListener("click", () => openModal(false));
+
+// Mostrar botón editar en cada fila
+window.showEdit = function(id) {
+    const item = resources.find(r => r.id === id);
+    openModal(true, item);
+};
 
 // ==================== INICIO ====================
 loadInventory();
